@@ -1,0 +1,19 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+node_modules/
+dist/
+build/
+coverage/
+# Runtime/private assets and browser reports
+data/
+.env*
+!.env.example
+.next/
+node_modules/
+test-results/
+playwright-report/
+*.tsbuildinfo
+.next-e2e/
+evidence/recording-raw/

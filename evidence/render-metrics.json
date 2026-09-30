@@ -1,0 +1,17 @@
+{
+  "renderer": "Chromium headless, SwiftShader software rendering; not a physical-device FPS benchmark",
+  "viewport": {
+    "width": 1440,
+    "height": 1000
+  },
+  "measured": {
+    "frames": 120,
+    "medianFrameMs": 59.1,
+    "triangles": 44910,
+    "drawCalls": 168,
+    "dpr": 1
+  },
+  "sampleDrawingBytes": 43744,
+  "mockModelBytes": 1276,
+  "realModel": "not available; live Tripo not run"
+}

@@ -1,0 +1,11 @@
+{
+  "date": "2026-09-30",
+  "surface": "Codex in-app browser, local landing miniature",
+  "viewport": {"width":1280,"height":720},
+  "frames":120,
+  "medianFrameMs":16.7,
+  "triangles":44742,
+  "drawCalls":165,
+  "dpr":1.5,
+  "scope":"Observed desktop sample only. Not a cross-device frame-rate guarantee; real Tripo assets and physical mobile devices were not benchmarked."
+}

@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" /><meta
+    name="viewport"
+    content="width=device-width,initial-scale=1"
+  /><title>DoodleQuest — visual asset board</title
+  ><style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      background: #f8f5eb;
+      color: #304f41;
+      margin: 0;
+      padding: 50px;
+      font:
+        14px/1.6 system-ui,
+        sans-serif;
+    }
+    main {
+      max-width: 1280px;
+      margin: auto;
+    }
+    h1,
+    h2 {
+      font-family: Georgia, serif;
+      font-weight: 400;
+    }
+    h1 {
+      font-size: 52px;
+      letter-spacing: -2px;
+      margin: 5px 0 10px;
+    }
+    header {
+      margin-bottom: 35px;
+    }
+    small {
+      letter-spacing: 2px;
+      font-size: 10px;
+      color: #8b9379;
+    }
+    .lead {
+      color: #87907a;
+      max-width: 720px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    figure {
+      margin: 0;
+      background: #fffdf5;
+      border: 1px solid #dedfce;
+      padding: 13px;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    figure img {
+      display: block;
+      width: 100%;
+      height: 230px;
+      object-fit: contain;
+      background: #edf0e3;
+      border-radius: 9px;
+    }
+    figcaption {
+      padding: 16px 4px 4px;
+    }
+    figcaption b {
+      display: block;
+      margin-bottom: 6px;
+    }
+    .wide {
+      grid-column: span 3;
+    }
+    .wide img {
+      height: auto;
+      max-height: 640px;
+    }
+    footer {
+      margin-top: 25px;
+      border-top: 1px solid #ddd;
+      padding-top: 20px;
+      font-size: 12px;
+      color: #7c8972;
+    }
+    a {
+      text-decoration: underline;
+      color: inherit;
+    }
+    @media (max-width: 760px) {
+      body {
+        padding: 24px;
+      }
+      .grid {
+        grid-template-columns: 1fr;
+      }
+      .wide {
+        grid-column: auto;
+      }
+      h1 {
+        font-size: 38px;
+      }
+    }
+  </style>
+  <main>
+    <header>
+      <small>DOODLEQUEST / A WORLD AS A GIFT</small>
+      <h1>It started with a doodle.</h1>
+      <p class="lead">
+        An original drawing, a toy-like character, and a small adventure with a
+        personal ending. These are actual product screenshots. Pip is a
+        procedural example, not a Tripo-generated model.
+      </p>
+    </header>
+    <div class="grid">
+      <figure>
+        <img src="../public/sample-drawing.png" alt="Pip source drawing" />
+        <figcaption>
+          <b>01 · The original</b>Repository-original mint bunny drawing. No
+          child's personal information.
+        </figcaption>
+      </figure>
+      <figure>
+        <img src="hero-front.png" alt="Procedural Pip front view" />
+        <figcaption>
+          <b>02 · A little personality</b>Authored procedural hero, front view.
+          A clear example-mode label accompanies it in the product.
+        </figcaption>
+      </figure>
+      <figure>
+        <img src="hero-three-quarter.png" alt="Procedural Pip rotated view" />
+        <figcaption>
+          <b>03 · Turn it around</b>Actual interactive model preview, rotated
+          during the walkthrough.
+        </figcaption>
+      </figure>
+      <figure class="wide">
+        <img src="world-overview.png" alt="Playable floating garden island" />
+        <figcaption>
+          <b>04 · Somewhere to belong</b>One floating island: bell gate, star
+          garden and gift mailbox.
+        </figcaption>
+      </figure>
+      <figure>
+        <img src="gameplay-desktop.png" alt="Bell sequence puzzle" />
+        <figcaption>
+          <b>05 · A gentle beginning</b>Shapes as well as colors. The same
+          actions work with keyboard, touch or mouse.
+        </figcaption>
+      </figure>
+      <figure>
+        <img src="star-collected.png" alt="Hero carrying a collected star" />
+        <figcaption>
+          <b>06 · Carry a little light</b>The hero participates in the quest.
+          Authored rules protect the progression.
+        </figcaption>
+      </figure>
+      <figure>
+        <img
+          src="ending-personalized.png"
+          alt="A personal message at the ending"
+        />
+        <figcaption>
+          <b>07 · The real gift</b>A note from Alex to Jamie. Fictional
+          demonstration names.
+        </figcaption>
+      </figure>
+    </div>
+    <footer>
+      See <a href="walkthrough.mp4">the actual screen recording</a>. Live Tripo
+      generation was not run; the adapter is implemented and tested with
+      explicit mocks. Review ASSET_PROVENANCE.md and COMPLETION.md before
+      presenting provider evidence.
+    </footer>
+  </main>
+</html>
