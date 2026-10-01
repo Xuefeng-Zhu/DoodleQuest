@@ -75,6 +75,7 @@ await page.getByRole("link", { name: "Play the whole adventure" }).click();
 await expect(page.getByRole("button", { name: "Open my gift" })).toBeVisible();
 await holdUntil(41);
 await page.getByRole("button", { name: "Open my gift" }).click();
+await page.getByRole("button", { name: "Enter the little world" }).click();
 await page.getByRole("button", { name: "1 Bell gate", exact: true }).click();
 await expect(
   page.getByRole("button", { name: "Ring circle bell" }),
@@ -101,6 +102,8 @@ await expect(
 ).toBeVisible();
 await holdUntil(70);
 await page.getByRole("button", { name: "Deliver the star" }).click();
+await page.waitForTimeout(1200);
+await page.getByRole("button", { name: "Open your letter" }).click();
 await page.waitForTimeout(1700);
 await page.screenshot({ path: "evidence/ending-personalized.png" });
 await holdUntil(80);
@@ -108,7 +111,12 @@ await page
   .getByRole("link", { name: "Creator preview · back to workshop" })
   .click();
 await page.getByRole("button", { name: "5 Preview & share" }).click();
-await page.getByRole("button", { name: "Publish gift link" }).click();
+await page.getByRole("button", { name: "Wrap this gift" }).click();
+await page.getByRole("button", { name: "Seal & publish gift" }).click();
+await expect(
+  page.getByRole("button", { name: "Back to my workshop" }),
+).toBeVisible();
+await page.getByRole("button", { name: "Back to my workshop" }).click();
 await expect(
   page.getByLabel("Gift link version 1", { exact: true }),
 ).toBeVisible();
@@ -124,6 +132,7 @@ const metricsContext = await browser.newContext({
 const mpage = await metricsContext.newPage();
 await mpage.goto(base + "/example");
 await mpage.getByRole("button", { name: "Open my gift" }).click();
+await mpage.getByRole("button", { name: "Enter the little world" }).click();
 await expect(mpage.locator("canvas")).toHaveAttribute(
   "data-measurement",
   /.+/,

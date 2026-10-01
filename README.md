@@ -16,6 +16,18 @@ npm run dev
 
 Open **http://localhost:3000** (use the exact configured `APP_ORIGIN`). `dev` starts Next.js and the separate durable Node worker. `/example` needs no credentials. `/create` persists drafts in this browser's owner session. Keep its cookies: there is no account recovery. No child name, age, photo, school, or location is required.
 
+The island celebrates earned progress: each correct bell lights a ribbon section, collecting the star opens the garden flowers, and delivery warms the island with a golden rim and little stars. Rewards persist until replay; pause and reduced-motion settings apply without changing the quest.
+
+Delivery also brings a sealed envelope. Choose **Open your letter** to read the creator’s unchanged note on warm stationery, then fold it for rereading or play again. The letter supports keyboard/touch controls, reduced motion, long-message scrolling and the creator’s original-drawing permission. No additional generation or credentials are needed.
+
+Creators can add **A little saying (optional)**: up to 60 characters of a shared phrase, tiny memory or inside joke. The same paper tag appears at the opening, travels above the collected star, and is tucked into the final letter. It is visible from the start, not part of the surprise message. Leave it blank to omit it. Saved drafts and immutable gift snapshots preserve the exact words; older gifts remain without a tag. This adds no paid generation.
+
+**Tiny wonders off the path:** tap the sleepy flower to open it, tickle the little cloud for a puff, or invite the butterfly to keep the hero company briefly. They are optional, repeatable moments, not collectibles or quest requirements. The compact **Little wonders** control provides the same actions for keyboard users. Effects settle on their own, freeze while paused, respect reduced motion and reset on replay. The no-WebGL alternative describes these moments in words. All three are original procedural geometry; no credentials or generation calls are needed.
+
+**A melody that comes home:** opt into **Gentle sounds** at the opening or in settings. The circle, triangle and star bells play three notes; collecting the star gives a higher echo, and first opening the letter brings those notes back in a short, resolving music-box phrase. **Play the melody** lets you listen again and explicitly enables sound; **Stop melody**, mute, pause, folding, replay and leaving the page stop it. A folded letter does not automatically repeat the tune. Sound is off by default and never required. Music is synthesized locally from an original fixed score—no audio download, microphone access, AI provider, credentials or looped background music.
+
+**Wrapping the gift becomes a moment:** in **Preview & share**, choose **Wrap this gift**. Review the recipient, unchanged note and original-drawing permission, then choose **Seal & publish gift**. The paper parcel takes its ribbon and heart seal only after the server confirms a saved snapshot. Copy its link or open it; nothing is sent automatically. Cancel before sealing without publishing. Reduced motion settles the parcel immediately, and the long note remains scrollable. A lost response offers **Check saved gift links**, never an automatic second publication. Existing version links, revocation and deletion remain in the workshop. This adds no generation cost or credentials.
+
 ## Live, example, and mock modes
 
 | Mode             | Behavior                                                                                                                                                                                               |
@@ -85,6 +97,8 @@ ffmpeg -y -i evidence/walkthrough.webm -c:v libx264 -pix_fmt yuv420p -movflags +
 Recording creates a fictional example draft and local share in the selected instance. `DEMO_BASE_URL` may override the default localhost URL; do not point this evidence script at a production service without intending those writes.
 
 See `ARCHITECTURE.md`, `ASSET_PROVENANCE.md`, `COMPLETION.md`, `SUBMISSION.md`, and `DEMO_SCRIPT.md`.
+
+The recipient opening now includes a permission-aware **drawing meets world** reveal. See `REVEAL.md` for behavior, tests and the new short actual-product recording. `npm run demo:reveal` records only the bundled recipient example and performs no creator or generation writes.
 
 ## Live smoke test — not run
 

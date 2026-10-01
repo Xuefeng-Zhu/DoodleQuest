@@ -15,6 +15,7 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "demo:record": "tsx scripts/record-demo.ts",
+    "demo:reveal": "tsx scripts/record-reveal.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
