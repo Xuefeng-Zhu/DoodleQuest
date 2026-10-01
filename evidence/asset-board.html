@@ -89,6 +89,11 @@
       text-decoration: underline;
       color: inherit;
     }
+    audio {
+      display: block;
+      width: min(100%, 440px);
+      margin-top: 14px;
+    }
     @media (max-width: 760px) {
       body {
         padding: 24px;
@@ -159,17 +164,68 @@
       </figure>
       <figure>
         <img
-          src="ending-personalized.png"
-          alt="A personal message at the ending"
+          src="letter-envelope-desktop.png"
+          alt="A sealed envelope delivered beside the celebrating island"
         />
         <figcaption>
-          <b>07 · The real gift</b>A note from Alex to Jamie. Fictional
-          demonstration names.
+          <b>07 · Special delivery</b>A letter waits in a sealed envelope.
+          The recipient chooses when to open it.
+        </figcaption>
+      </figure>
+      <figure class="wide">
+        <img src="letter-open-desktop.png" alt="An opened letter from the DoodleQuest studio beside Pip and the island" />
+        <figcaption><b>08 · A few words, just for you</b>The unchanged personal note, a warm signature and an optional drawing keepsake. Actual example-mode capture.</figcaption>
+      </figure>
+      <figure>
+        <img src="dedication-opening-desktop.png" alt="A personal saying on a little paper tag at the gift opening" />
+        <figcaption><b>09 · Something only you would say</b>An optional phrase, introduced before the adventure.</figcaption>
+      </figure>
+      <figure>
+        <img src="dedication-star-desktop.png" alt="The same paper tag traveling above Pip's collected star" />
+        <figcaption><b>10 · Carry it with you</b>The tag follows the hero through the actual playable scene.</figcaption>
+      </figure>
+      <figure>
+        <img src="dedication-letter-desktop.png" alt="The unchanged saying tucked into the final letter" />
+        <figcaption><b>11 · All this way, just for you</b>The same words arrive with the note. No AI rewriting.</figcaption>
+      </figure>
+      <figure>
+        <img src="wonders-flower-desktop.png" alt="The sleepy flower opening when tapped beside the ribbon path" />
+        <figcaption><b>12 · A little hello</b>A repeatable flower response, independent of the quest. Original procedural scenery.</figcaption>
+      </figure>
+      <figure>
+        <img src="wonders-butterfly-desktop.png" alt="A butterfly keeping Pip company at the bell gate" />
+        <figcaption><b>13 · Some company along the way</b>The butterfly follows the hero's actual waypoint movement, then returns to its leaf.</figcaption>
+      </figure>
+      <figure>
+        <img src="wonders-cloud-desktop.png" alt="A small puff floating away after the friendly cloud is tickled" />
+        <figcaption><b>14 · The softest puff</b>A tiny response, then quiet again. No collectible counter or quest requirement.</figcaption>
+      </figure>
+      <figure class="wide">
+        <img src="melody-letter-desktop.png" alt="Three bell shapes and a listening control tucked into the personal letter" />
+        <figcaption>
+          <b>15 · A melody that comes home</b>The bell notes return when the letter opens. Original locally synthesized score; sound is optional. This separate audio sample was captured from the actual browser audio graph, not a microphone. Physical speaker playback is unverified.
+          <audio controls preload="none" aria-label="Listen to the returning bell melody">
+            <source src="melody-browser-audio.mp3" type="audio/mpeg" />
+            <a href="melody-browser-audio.mp3">Listen to the melody</a>
+          </audio>
+        </figcaption>
+      </figure>
+      <figure class="wide">
+        <img src="wrapping-sealed-desktop.png" alt="A tied paper parcel addressed to Jamie beside a confirmed, copyable gift link" />
+        <figcaption>
+          <b>16 · Ready for someone special</b>Review the note, then seal the gift. The ribbon and heart seal follow a confirmed local publication, not simulated loading. Original CSS artwork; the sample hero remains procedural. No message is sent automatically.
+          <a href="wrapping-review-desktop.png">Before tying the ribbon</a> · <a href="wrapping-sealed-mobile-standard.png">Mobile wrapping</a>
         </figcaption>
       </figure>
     </div>
     <footer>
-      See <a href="walkthrough.mp4">the actual screen recording</a>. Live Tripo
+      See <a href="wrapping-walkthrough.mp4">the silent wrapping screen recording</a>,
+      <a href="melody-walkthrough.mp4">the silent melody-feature screen recording</a>,
+      <a href="wonders-walkthrough.mp4">the tiny-wonders screen recording</a>,
+      <a href="wonders-controls-mobile.png">the mobile discovery controls</a>,
+      <a href="dedication-walkthrough.mp4">the traveling-saying screen recording</a>,
+      <a href="letter-walkthrough.mp4">the earlier letter recording</a>
+      or <a href="walkthrough.mp4">the original full walkthrough</a>. Live Tripo
       generation was not run; the adapter is implemented and tested with
       explicit mocks. Review ASSET_PROVENANCE.md and COMPLETION.md before
       presenting provider evidence.

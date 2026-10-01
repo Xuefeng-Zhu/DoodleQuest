@@ -1,0 +1,5 @@
+warning: THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+warning: [.WebGL-0x10c0043e400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+warning: [.WebGL-0x10c0043e400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+warning: [.WebGL-0x10c0043e400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+warning: [.WebGL-0x10c0043e400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)

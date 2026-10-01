@@ -1,0 +1,15 @@
+{
+  "renderer": "Chromium SwiftShader software rendering",
+  "viewport": {
+    "width": 1440,
+    "height": 1000
+  },
+  "frames": 120,
+  "stage": "complete",
+  "low": false,
+  "medianFrameMs": 196,
+  "triangles": 45898,
+  "drawCalls": 191,
+  "dpr": 1,
+  "wonders": []
+}

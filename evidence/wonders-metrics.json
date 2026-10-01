@@ -1,0 +1,20 @@
+{
+  "renderer": "Chromium SwiftShader software rendering",
+  "viewport": {
+    "width": 1024,
+    "height": 768
+  },
+  "pausedWithSettingsOpen": true,
+  "frames": 120,
+  "stage": "bell_gate",
+  "low": false,
+  "medianFrameMs": 265.1,
+  "triangles": 46542,
+  "drawCalls": 192,
+  "dpr": 1,
+  "wonders": [
+    "flower",
+    "cloud",
+    "butterfly"
+  ]
+}
