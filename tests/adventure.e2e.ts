@@ -25,6 +25,10 @@ async function activate(page: Page, name: string, keyboard: boolean) {
 }
 async function complete(page: Page, keyboard = false) {
   await activate(page, "Open my gift", keyboard);
+  await expect(
+    page.getByRole("button", { name: "Enter the little world" }),
+  ).toBeEnabled();
+  await activate(page, "Enter the little world", keyboard);
   await activate(page, "1 Bell gate", keyboard);
   await expect(
     page.getByRole("button", { name: "Ring circle bell" }),
@@ -44,6 +48,9 @@ async function complete(page: Page, keyboard = false) {
     page.getByRole("button", { name: "Deliver the star" }),
   ).toBeVisible();
   await activate(page, "Deliver the star", keyboard);
+  await activate(page, "Open your letter", keyboard);
+  await expect(page.locator(".personal-message")).toBeVisible();
+  await expect(page.locator(".letter-sheet")).toHaveCSS("opacity", "1");
   await expect(page.getByRole("button", { name: "Play again" })).toBeVisible();
 }
 test("bundled example: drawing, bells, star, ending, replay", async ({
@@ -65,6 +72,7 @@ test("bundled example: drawing, bells, star, ending, replay", async ({
   await page.waitForTimeout(900);
   await page.screenshot({ path: `${evidence}/opening-desktop.png` });
   await activate(page, "Open my gift", false);
+  await page.getByRole("button", { name: "Enter the little world" }).click();
   await activate(page, "1 Bell gate", false);
   await expect(
     page.getByRole("button", { name: "Ring circle bell" }),
@@ -86,6 +94,8 @@ test("bundled example: drawing, bells, star, ending, replay", async ({
     page.getByRole("button", { name: "Deliver the star" }),
   ).toBeVisible();
   await activate(page, "Deliver the star", false);
+  await activate(page, "Open your letter", false);
+  await expect(page.locator(".letter-sheet")).toHaveCSS("opacity", "1");
   await expect(
     page.getByText("The world is a little brighter with you in it.", {
       exact: false,
@@ -150,22 +160,39 @@ test("persisted draft, approval, preview, immutable sharing, ownership, revoke, 
   await page.getByLabel("For someone special").fill("Jamie");
   await page.getByLabel("Made by", { exact: true }).fill("Alex");
   await page
+    .getByLabel("A little saying (optional)", { exact: true })
+    .fill("Our Saturday adventures");
+  await expect(page.locator('[data-dedication="preview"] p')).toHaveText(
+    "Our Saturday adventures",
+  );
+  await page
     .getByLabel("A note at the end")
     .fill("You make ordinary days extraordinary.");
   await page.getByLabel("Show the original drawing").check();
   await page.getByRole("button", { name: "Save & preview" }).click();
   await page.reload();
+  await expect(
+    page.getByLabel("A little saying (optional)", { exact: true }),
+  ).toHaveValue("Our Saturday adventures");
   await page.getByRole("button", { name: "5 Preview & share" }).click();
   await expect(
     page.getByText("You make ordinary days extraordinary."),
   ).toBeVisible();
   await page.getByRole("link", { name: "Play the whole adventure" }).click();
   await complete(page);
+  await expect(page.locator('[data-dedication="letter"] p')).toHaveText(
+    "Our Saturday adventures",
+  );
   await page
     .getByRole("link", { name: "Creator preview · back to workshop" })
     .click();
   await page.getByRole("button", { name: "5 Preview & share" }).click();
-  await page.getByRole("button", { name: "Publish gift link" }).click();
+  await page.getByRole("button", { name: "Wrap this gift" }).click();
+  await page.getByRole("button", { name: "Seal & publish gift" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Wrapped for Jamie." }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Back to my workshop" }).click();
   const share = page.getByLabel("Gift link version 1", { exact: true });
   await expect(share).toBeVisible();
   const url = await share.inputValue();
@@ -177,6 +204,9 @@ test("persisted draft, approval, preview, immutable sharing, ownership, revoke, 
   const recipient = await browser.newContext();
   const gift = await recipient.newPage();
   await gift.goto(url);
+  await expect(gift.locator('[data-dedication="opening"] p')).toHaveText(
+    "Our Saturday adventures",
+  );
   await expect(
     gift.getByRole("heading", { name: "A little world, made for Jamie." }),
   ).toBeVisible();
@@ -194,11 +224,20 @@ test("persisted draft, approval, preview, immutable sharing, ownership, revoke, 
   ).toBeVisible();
   await page.getByRole("button", { name: "Edit the note" }).click();
   await page
+    .getByLabel("A little saying (optional)", { exact: true })
+    .fill("A new draft thought");
+  await page
     .getByLabel("A note at the end")
     .fill("A changed draft, never a changed gift.");
   await page.getByRole("button", { name: "Save & preview" }).click();
   await gift.reload();
+  await expect(gift.locator('[data-dedication="opening"] p')).toHaveText(
+    "Our Saturday adventures",
+  );
   await complete(gift);
+  await expect(gift.locator('[data-dedication="letter"] p')).toHaveText(
+    "Our Saturday adventures",
+  );
   await expect(
     gift.getByText("You make ordinary days extraordinary."),
   ).toBeVisible();

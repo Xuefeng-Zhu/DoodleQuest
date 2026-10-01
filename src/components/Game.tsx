@@ -1,16 +1,14 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Settings2,
   ArrowLeft,
   ArrowRight,
-  RotateCcw,
   Volume2,
   VolumeX,
   Star,
   Mail,
-  Heart,
 } from "lucide-react";
 import type { Gift } from "@/domain/config";
 import {
@@ -22,6 +20,15 @@ import {
 } from "@/domain/quest";
 import { useGame, movementProgress } from "./game/store";
 import Scene from "./Scene";
+import GiftReveal from "./GiftReveal";
+import GiftLetter from "./GiftLetter";
+import DedicationTag from "./DedicationTag";
+import { useGiftReveal } from "./game/useGiftReveal";
+import { permittedDrawing } from "@/domain/reveal";
+import WonderControls from "./WonderControls";
+import { useWonderClock } from "./game/useWonderClock";
+import { useMelody } from "./game/useMelody";
+import { soundForAction } from "@/domain/melody";
 export default function Game({
   gift,
   preview = false,
@@ -29,6 +36,8 @@ export default function Game({
   gift: Gift;
   preview?: boolean;
 }) {
+  useWonderClock();
+  const melody = useMelody();
   const game = useGame((s) => s.game),
     dispatch = useGame((s) => s.dispatch),
     settings = useGame((s) => s.settings),
@@ -36,7 +45,12 @@ export default function Game({
     low = useGame((s) => s.low),
     reduced = useGame((s) => s.reduced);
   const [failed, setFailed] = useState(false);
-  const audio = useRef<AudioContext | null>(null);
+  const [ready, setReady] = useState(false);
+  const onSceneReady = useCallback(() => setReady(true), []);
+  const onSceneFailure = useCallback(() => setFailed(true), []);
+  const opening = useGiftReveal(game.paused, reduced);
+  const revealing = opening.phase !== "sealed" && opening.phase !== "playing";
+  const objective = useRef<HTMLDivElement>(null);
   const dialog = useRef<HTMLElement>(null);
   useEffect(() => {
     if (game.paused)
@@ -48,10 +62,15 @@ export default function Game({
     settings({
       reduced: matchMedia("(prefers-reduced-motion: reduce)").matches,
     });
-    return () => {
-      audio.current?.close();
-    };
   }, [dispatch, settings]);
+  useEffect(() => {
+    if (opening.phase === "playing" && game.stage === "intro" && !game.paused)
+      dispatch({ type: "open" });
+  }, [opening.phase, game.stage, game.paused, dispatch]);
+  useEffect(() => {
+    if (game.stage === "bell_gate")
+      objective.current?.focus({ preventScroll: true });
+  }, [game.stage]);
   useEffect(() => {
     if (!game.target || game.paused) return;
     let last = performance.now();
@@ -68,27 +87,12 @@ export default function Game({
     return () => cancelAnimationFrame(raf);
   }, [game.target, game.paused, dispatch]);
   const act = (a: Action) => {
+    const before = useGame.getState().game;
+    if (a.type === "pause") melody.stop();
+    if (a.type === "replay") melody.replay();
     dispatch(a);
-    if (!muted && (a.type === "bell" || a.type === "interact")) {
-      try {
-        audio.current ??= new AudioContext();
-        const osc = audio.current.createOscillator(),
-          gain = audio.current.createGain();
-        osc.type = "sine";
-        osc.frequency.value =
-          a.type === "bell" ? [523, 659, 784][sequence.indexOf(a.bell)] : 880;
-        gain.gain.setValueAtTime(0.05, audio.current.currentTime);
-        gain.gain.exponentialRampToValueAtTime(
-          0.001,
-          audio.current.currentTime + 0.6,
-        );
-        osc.connect(gain).connect(audio.current.destination);
-        osc.start();
-        osc.stop(audio.current.currentTime + 0.6);
-      } catch {
-        /* Sound is optional. */
-      }
-    }
+    const cue = soundForAction(before, useGame.getState().game, a);
+    if (cue) melody.play(cue);
   };
   const names: Record<Destination, string> = {
     start: "Little landing",
@@ -98,7 +102,11 @@ export default function Game({
   };
   return (
     <main
-      className={`game-page ${game.stage === "complete" ? "completed" : ""}`}
+      className={`game-page ${game.stage === "complete" ? "completed" : ""} ${revealing ? "is-revealing" : ""} ${opening.phase === "entering" ? "is-entering" : ""}`}
+      data-reveal-phase={opening.phase}
+      data-reduced-motion={reduced}
+      data-paused={game.paused}
+      data-scene-ready={ready}
     >
       <header className="game-top">
         <Link href={preview ? "/create" : "/"} className="back-link">
@@ -115,15 +123,25 @@ export default function Game({
         </button>
       </header>
       <div className="game-scene">
-        <Scene gift={gift} onFailure={() => setFailed(true)} onAction={act} />
+        <Scene
+          gift={gift}
+          onFailure={onSceneFailure}
+          onReady={onSceneReady}
+          onAction={act}
+          reveal={{
+            phase: opening.phase,
+            progress: opening.progress,
+            withDrawing: !!permittedDrawing(gift),
+          }}
+        />
       </div>
       {game.stage !== "intro" && game.stage !== "complete" && (
-        <div className="objective">
+        <div className="objective" ref={objective} tabIndex={-1}>
           <span className="status-dot" />
           {objectives[game.stage]}
         </div>
       )}
-      {game.stage === "intro" && (
+      {game.stage === "intro" && opening.phase === "sealed" && (
         <section className="gift-opening">
           <span className="eyebrow">A SMALL ADVENTURE, WITH A BIG HEART</span>
           <h1>
@@ -136,22 +154,65 @@ export default function Game({
             <br />
             Discover something just for you.
           </p>
+          <DedicationTag text={gift.config.dedication} variant="opening" />
           <button
             className="button primary"
-            onClick={() => act({ type: "open" })}
+            onClick={() =>
+              opening.send({
+                type: "open",
+                withDrawing: !!permittedDrawing(gift),
+                reduced,
+              })
+            }
           >
             Open my gift <ArrowRight size={18} />
           </button>
           <span className="opening-signature">
             with love, {gift.config.creator}
           </span>
+          <button
+            className="opening-sound"
+            role="switch"
+            aria-checked={!muted}
+            aria-label="Gentle sounds"
+            onClick={() => melody.setEnabled(muted)}
+            disabled={game.paused}
+          >
+            {muted ? (
+              <VolumeX size={15} aria-hidden="true" />
+            ) : (
+              <Volume2 size={15} aria-hidden="true" />
+            )}
+            {muted
+              ? "Sound off · a quiet little world"
+              : "Sound on · listen for the bells"}
+          </button>
         </section>
+      )}
+      {revealing && (
+        <GiftReveal
+          gift={gift}
+          phase={opening.phase}
+          ready={ready}
+          failed={failed}
+          onEnter={() => opening.send({ type: "enter" })}
+          onSkip={() => opening.send({ type: "skip" })}
+        />
       )}
       {game.stage !== "intro" && game.stage !== "complete" && (
         <div className="game-bottom">
           <p className="game-hint" role="status" aria-live="polite">
             {game.hint}
+            {game.hasStar && gift.config.dedication && (
+              <span className="sr-only">
+                {" "}
+                Carrying a little thought: {gift.config.dedication}.
+              </span>
+            )}
           </p>
+          {game.hasStar && (failed || !ready) && (
+            <DedicationTag text={gift.config.dedication} variant="carried" />
+          )}
           {game.location === "bells" &&
             !game.target &&
             game.stage === "bell_gate" && (
@@ -216,50 +277,27 @@ export default function Game({
           </p>
         </div>
       )}
+      {game.stage !== "intro" && game.stage !== "complete" && (
+        <WonderControls textOnly={failed || !ready} />
+      )}
       {game.stage === "complete" && (
-        <section className="ending">
-          <div className="gift-sparkles" aria-hidden="true">
-            {[0, 1, 2, 3, 4, 5].map((i) => (
-              <span
-                key={i}
-                style={{
-                  left: `${12 + i * 15}%`,
-                  animationDelay: `${i * 0.1}s`,
-                }}
-              >
-                ✦
-              </span>
-            ))}
-          </div>
-          <span className="ending-star">✦</span>
-          <span className="eyebrow">ONE LITTLE STAR. ALL THIS LOVE.</span>
-          <h1>
-            For {gift.config.recipient}
-            <span className="handwritten">♡</span>
-          </h1>
-          <p className="personal-message">{gift.config.message}</p>
-          <p className="signature">
-            With love, <strong>{gift.config.creator}</strong>
-          </p>
-          {gift.config.showDrawing && gift.drawingUrl && (
-            <details>
-              <summary>The drawing that started it all</summary>
-              <img
-                src={gift.drawingUrl}
-                alt={`Original drawing for ${gift.config.heroName}`}
-              />
-            </details>
-          )}
-          <button
-            className="button secondary"
-            onClick={() => {
-              movementProgress.current = 0;
-              act({ type: "replay" });
-            }}
-          >
-            <RotateCcw size={16} /> Play again
-          </button>
-        </section>
+        <GiftLetter
+          gift={gift}
+          paused={game.paused}
+          reduced={reduced}
+          status={game.hint}
+          melody={{
+            state: melody.state,
+            onOpen: melody.openLetter,
+            onPlay: melody.hearAgain,
+            onStop: melody.stop,
+          }}
+          onReplay={() => {
+            movementProgress.current = 0;
+            opening.send({ type: "replay" });
+            act({ type: "replay" });
+          }}
+        />
       )}
       {game.paused && (
         <div className="modal-scrim">
@@ -295,11 +333,16 @@ export default function Game({
               <input
                 type="checkbox"
                 checked={!muted}
-                onChange={(e) => settings({ muted: !e.target.checked })}
+                onChange={(e) => melody.setEnabled(e.target.checked)}
               />
               {muted ? <VolumeX size={18} /> : <Volume2 size={18} />} Gentle
               sounds
             </label>
+            {melody.state.phase === "unavailable" && (
+              <p className="audio-unavailable" aria-live="polite">
+                Sound couldn’t start. Your gift still works without it.
+              </p>
+            )}
             <label className="check-row">
               <input
                 type="checkbox"

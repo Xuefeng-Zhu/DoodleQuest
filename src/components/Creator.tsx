@@ -13,7 +13,13 @@ import {
   Sparkles,
 } from "lucide-react";
 import Header from "./Header";
+import DedicationTag from "./DedicationTag";
+import GiftWrapping, {
+  UnconfirmedPublication,
+  type WrappedGift,
+} from "./GiftWrapping";
 import {
+  DEDICATION_LIMIT,
   defaults,
   palettes,
   type GiftConfig,
@@ -72,7 +78,12 @@ const working = [
   "downloading",
   "asset_retry",
 ];
-export async function api(path: string, method = "GET", body?: unknown) {
+export async function api(
+  path: string,
+  method = "GET",
+  body?: unknown,
+  signal?: AbortSignal,
+) {
   const r = await fetch("/api/" + path, {
     method,
     headers:
@@ -84,6 +95,7 @@ export async function api(path: string, method = "GET", body?: unknown) {
     body:
       body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
     cache: "no-store",
+    signal,
   });
   const data = await r.json();
   if (!r.ok) throw new Error(data.error || "Something went wrong.");
@@ -118,6 +130,8 @@ export default function Creator() {
     [elapsed, setElapsed] = useState(0);
   const dirty = useRef(false);
   const key = useRef("");
+  const [wrapping, setWrapping] = useState(false);
+  const wrappingBaseline = useRef<string[]>([]);
   const apply = (p: Project, replaceConfig = true) => {
     setProject(p);
     if (replaceConfig) {
@@ -315,6 +329,98 @@ export default function Creator() {
     setLoaded(false);
     setStep(1);
   };
+  const publishWrappedGift = async (
+    stage: (phase: "saving" | "publishing") => void,
+  ): Promise<WrappedGift> => {
+    if (!project) throw new Error("Open your saved draft first.");
+    setBusy(true);
+    setError("");
+    setNotice("");
+    let submitted = false;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20_000);
+    try {
+      stage("saving");
+      const p: Project = await api(
+        `projects/${project.id}`,
+        "PATCH",
+        config,
+        controller.signal,
+      );
+      apply(p);
+      stage("publishing");
+      submitted = true;
+      const receipt = await api(
+        `projects/${p.id}/publish`,
+        "POST",
+        undefined,
+        controller.signal,
+      );
+      // A confirmed response is enough; a follow-up refresh must not turn a
+      // successful publication into a misleading failure or another publish.
+      apply({
+        ...p,
+        shares: [
+          ...p.shares,
+          {
+            id: receipt.id,
+            token: receipt.token,
+            version: receipt.version,
+            revoked: 0,
+          },
+        ],
+      });
+      return {
+        id: receipt.id,
+        token: receipt.token,
+        version: receipt.version,
+        config: p.config,
+      };
+    } catch (e) {
+      if (submitted)
+        throw new UnconfirmedPublication(
+          "We couldn’t confirm the gift link. It may already be saved. Check saved links before publishing again; we won’t automatically make another version.",
+        );
+      throw new Error(
+        e instanceof Error && !["AbortError", "TypeError"].includes(e.name)
+          ? e.message
+          : "We couldn’t confirm your latest words were saved. Please check your connection and try again. Nothing was published by this attempt.",
+      );
+    } finally {
+      clearTimeout(timeout);
+      setBusy(false);
+    }
+  };
+  const checkWrappedGift = async (): Promise<WrappedGift | null> => {
+    if (!project) return null;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15_000);
+    setBusy(true);
+    try {
+      const p: Project = await api(
+        `projects/${project.id}`,
+        "GET",
+        undefined,
+        controller.signal,
+      );
+      apply(p, false);
+      const found = [...p.shares]
+        .sort((a, b) => b.version - a.version)
+        .find((s) => !s.revoked && !wrappingBaseline.current.includes(s.id));
+      if (!found) return null;
+      // Read the actual published configuration, not potentially newer draft words.
+      const saved: Gift = await api(
+        `gifts/${found.token}`,
+        "GET",
+        undefined,
+        controller.signal,
+      );
+      return { ...found, config: saved.config };
+    } finally {
+      clearTimeout(timeout);
+      setBusy(false);
+    }
+  };
   const gift: Gift = {
     config,
     modelUrl: project?.modelUrl || undefined,
@@ -350,6 +456,26 @@ export default function Creator() {
           onChange={(e) => change("title", e.target.value)}
         />
       </label>
+      <div className="wide dedication-field">
+        <label htmlFor="dedication">A little saying (optional)</label>
+        <input
+          id="dedication"
+          value={config.dedication}
+          maxLength={DEDICATION_LIMIT}
+          placeholder="To the moon and back"
+          aria-describedby="dedication-help dedication-count"
+          onChange={(e) => change("dedication", e.target.value)}
+        />
+        <p className="note" id="dedication-help">
+          A shared saying, a tiny memory, an inside joke. It travels from the
+          opening to the star, then into their letter. Visible from the start;
+          keep personal information out. Leave blank to skip.
+        </p>
+        <span className="note" id="dedication-count">
+          {config.dedication.length}/{DEDICATION_LIMIT}
+        </span>
+        <DedicationTag text={config.dedication} variant="preview" />
+      </div>
       <label className="wide">
         A note at the end
         <textarea
@@ -805,8 +931,8 @@ export default function Creator() {
                 Show the original drawing to the recipient
               </label>
               <p className="note">
-                Off by default. Only enable it if you want the drawing included
-                in the gift.
+                Off by default. Enabling this includes the drawing in the
+                opening reveal and the ending. Preview both before sharing.
               </p>
               <div className="section-actions">
                 <button
@@ -868,9 +994,10 @@ export default function Creator() {
               <h2>For {config.recipient}</h2>
               <p className="personal-message">{config.message}</p>
               <p>With love, {config.creator}</p>
+              <DedicationTag text={config.dedication} variant="letter" />
               <p className="note">
                 {config.showDrawing
-                  ? "The original drawing is included."
+                  ? "The original drawing is included in the reveal and ending."
                   : "The original drawing is not shared."}
               </p>
               <div className="section-actions">
@@ -901,19 +1028,17 @@ export default function Creator() {
               <button
                 className="button primary"
                 disabled={busy || !project?.approved}
-                onClick={() =>
-                  run(async () => {
-                    const p = await save();
-                    await api(`projects/${p.id}/publish`, "POST");
-                    apply(await api(`projects/${p.id}`));
-                    setNotice(
-                      "Your gift is published. Copy its unlisted link below.",
-                    );
-                  })
-                }
+                onClick={() => {
+                  wrappingBaseline.current =
+                    project?.shares.map((s) => s.id) || [];
+                  setWrapping(true);
+                }}
               >
-                Publish gift link <ArrowRight size={17} />
+                Wrap this gift <ArrowRight size={17} />
               </button>
+              <p className="note wrap-invitation">
+                A final look. A ribbon. Ready for someone special.
+              </p>
               {project?.shares.map((s) => (
                 <div key={s.id} style={{ marginTop: 20 }}>
                   <span className="note">
@@ -971,6 +1096,14 @@ export default function Creator() {
               ))}
             </section>
           </div>
+        )}
+        {wrapping && project && (
+          <GiftWrapping
+            config={config}
+            onPublish={publishWrappedGift}
+            onCheck={checkWrappedGift}
+            onClose={() => setWrapping(false)}
+          />
         )}
         {project && (
           <>

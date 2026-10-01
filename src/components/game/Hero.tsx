@@ -1,12 +1,15 @@
 "use client";
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame, useLoader } from "@react-three/fiber";
+import { Html } from "@react-three/drei";
+import DedicationTag from "../DedicationTag";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 import { Box3, Vector3, Vector2, Shape, Group, Mesh, Texture } from "three";
 import type { Gift } from "@/domain/config";
 import { useGame, movementProgress } from "./store";
 import { waypoints } from "@/domain/quest";
+import { heroPosition } from "@/domain/wonders";
 export function Orb({
   position = [0, 0, 0],
   scale = [1, 1, 1],
@@ -152,6 +155,9 @@ export function Character({
   const wrapper = useRef<Group>(null!),
     motion = useRef<Group>(null!);
   const reduced = useGame((s) => s.reduced);
+  useEffect(() => {
+    if (!gift.modelUrl) onReady?.();
+  }, [gift.modelUrl, onReady]);
   useFrame(({ clock }) => {
     if (!wrapper.current) return;
     const { game } = useGame.getState();
@@ -159,17 +165,15 @@ export function Character({
     if (!showcase) {
       const a = waypoints[game.location],
         b = game.target ? waypoints[game.target] : a;
-      const p = Math.min(movementProgress.current / 2.4, 1);
-      wrapper.current.position.set(
-        a[0] + (b[0] - a[0]) * p,
-        0.22,
-        a[2] + (b[2] - a[2]) * p,
-      );
+      heroPosition(wrapper.current.position, game, movementProgress.current);
       wrapper.current.rotation.y = game.target
         ? Math.atan2(b[0] - a[0], b[2] - a[2])
         : 0.2;
     }
-    if (!game.paused && !reduced) {
+    if (reduced) {
+      motion.current.position.y = 0;
+      motion.current.rotation.z = 0;
+    } else if (!game.paused) {
       motion.current.position.y =
         gift.config.movement === "float"
           ? 0.09 + Math.sin(t * 2) * 0.09
@@ -194,14 +198,27 @@ export function Character({
             <Pip />
           </group>
         )}
-        {!showcase && <CarriedStar />}
+        {!showcase && <CarriedStar dedication={gift.config.dedication} />}
       </group>
     </group>
   );
 }
-function CarriedStar() {
+function CarriedStar({ dedication }: { dedication: string }) {
   const has = useGame((s) => s.game.hasStar);
-  return has ? <Star position={[0, 2.45, 0]} size={0.3} /> : null;
+  return has ? (
+    <group>
+      <Star position={[0, 2.45, 0]} size={0.3} />
+      {dedication?.trim() && (
+        <Html
+          position={[0, 3.55, 0]}
+          zIndexRange={[3, 0]}
+          style={{ pointerEvents: "none", transform: "translate(-50%, -100%)" }}
+        >
+          <DedicationTag text={dedication} variant="carried" />
+        </Html>
+      )}
+    </group>
+  ) : null;
 }
 export function Star({
   position = [0, 0, 0],
