@@ -1,8 +1,10 @@
 import { z } from "zod";
+export const DEDICATION_LIMIT = 60;
 export const GiftConfigSchema = z.object({
   recipient: z.string().trim().min(1).max(50).default("Someone wonderful"),
   creator: z.string().trim().min(1).max(50).default("Someone who loves you"),
   title: z.string().trim().min(1).max(80).default("A Star for You"),
+  dedication: z.string().trim().max(DEDICATION_LIMIT).default(""),
   message: z
     .string()
     .trim()
@@ -31,6 +33,7 @@ export const example: Gift = {
     ...defaults,
     recipient: "You",
     creator: "The DoodleQuest studio",
+    dedication: "For all our little adventures",
     showDrawing: true,
   },
   drawingUrl: "/sample-drawing.png",

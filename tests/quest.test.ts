@@ -53,7 +53,7 @@ describe("A Star for You progression", () => {
     s = quest(s, { type: "interact" });
     expect(s.stage).toBe("complete");
     expect(s.hasStar).toBe(false);
-    expect(quest(s, { type: "interact" }).stage).toBe("complete");
+    expect(quest(s, { type: "interact" })).toEqual(s);
     expect(quest(s, { type: "replay" })).toEqual(initialQuest());
   });
   it("pauses all quest actions", () => {

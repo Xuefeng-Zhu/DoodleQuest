@@ -79,7 +79,7 @@ async function handler(
         s = JSON.parse(g.snapshot);
       return NextResponse.json(
         {
-          config: s.config,
+          config: GiftConfigSchema.parse(s.config),
           source: s.source,
           version: s.version,
           modelUrl: s.modelAsset
@@ -261,6 +261,7 @@ async function handler(
       rateLimit("publish:" + session.id, 20, 3600_000);
       const g = publish(p);
       return NextResponse.json({
+        id: g.id,
         token: g.token,
         version: g.version,
         url: `${env.origin}/gift/${g.token}`,

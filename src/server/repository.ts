@@ -217,7 +217,7 @@ export function projectView(p: Project) {
   return {
     ...p,
     owner: undefined,
-    config: JSON.parse(p.config),
+    config: GiftConfigSchema.parse(JSON.parse(p.config)),
     job: publicJob,
     drawingUrl: originalAsset(p) ? `/api/assets/${originalAsset(p)}` : null,
     modelUrl: p.modelAsset ? `/api/assets/${p.modelAsset}` : null,

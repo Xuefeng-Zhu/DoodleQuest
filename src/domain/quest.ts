@@ -48,6 +48,9 @@ export function quest(s: Quest, a: Action): Quest {
   if (a.type === "replay") return initialQuest();
   if (a.type === "pause") return { ...s, paused: !s.paused };
   if (s.paused) return s;
+  // A completed gift keeps its ending, including its accessible status message.
+  // Only the replay/settings actions above remain available.
+  if (s.stage === "complete") return s;
   if (a.type === "open" && s.stage === "intro")
     return {
       ...s,
@@ -93,8 +96,8 @@ export function quest(s: Quest, a: Action): Quest {
       stage: n === 3 ? "star_garden" : s.stage,
       hint:
         n === 3
-          ? "Ding, ding, ding! The gate is open. Find the star."
-          : `${n} of 3 bells. That sounds lovely.`,
+          ? "Ding, ding, ding! The ribbon is glowing and the gate is open. Find the star."
+          : `${n} of 3 bells. Another piece of the ribbon lights up.`,
     };
   }
   if (
@@ -107,7 +110,7 @@ export function quest(s: Quest, a: Action): Quest {
       ...s,
       hasStar: true,
       stage: "gift_delivery",
-      hint: "You found a little light. Let’s deliver it to the mailbox.",
+      hint: "You found a little light, and the garden is blooming! Let’s deliver it to the mailbox.",
     };
   if (a.type === "interact" && s.location === "mailbox")
     return s.stage === "gift_delivery" && s.hasStar
@@ -115,7 +118,7 @@ export function quest(s: Quest, a: Action): Quest {
           ...s,
           stage: "complete",
           hasStar: false,
-          hint: "A star, and a note, just for you.",
+          hint: "The whole island glows. A star, and a note, just for you.",
         }
       : {
           ...s,

@@ -9,6 +9,7 @@ import {
   requestGeneration,
   publish,
   repository,
+  projectView,
 } from "../src/server/repository";
 import { owned, shared, sameOrigin } from "../src/server/security";
 import { processOne } from "../src/server/worker";
@@ -154,22 +155,83 @@ describe("generation reliability", () => {
   });
 });
 describe("ownership, sharing, and storage", () => {
-  it("isolates published snapshots and checks ownership/revocation", async () => {
+  it("does not wrap an unapproved character", async () => {
+    const p = await draft();
+    expect(() => publish(p)).toThrow("Approve your character");
+    expect(projectView(p).shares).toHaveLength(0);
+  });
+  it("wrapping new versions preserves old words and independently revocable links", async () => {
     const p = await draft();
     db.update(projects).set({ approved: 1 }).where(eq(projects.id, p.id)).run();
+    const first = publish(owned(p.id, p.owner));
+    db.update(projects)
+      .set({
+        config: JSON.stringify({
+          ...defaults,
+          recipient: "Jamie",
+          message: "A new letter",
+        }),
+      })
+      .where(eq(projects.id, p.id))
+      .run();
+    const second = publish(owned(p.id, p.owner));
+    expect(first.version).toBe(1);
+    expect(second.version).toBe(2);
+    expect(second.token).not.toBe(first.token);
+    expect(JSON.parse(shared(first.token).snapshot).config.message).toBe(
+      defaults.message,
+    );
+    expect(JSON.parse(shared(second.token).snapshot).config.message).toBe(
+      "A new letter",
+    );
+    db.update(gifts).set({ revoked: 1 }).where(eq(gifts.id, first.id)).run();
+    expect(() => shared(first.token)).toThrow("no longer");
+    expect(shared(second.token).id).toBe(second.id);
+  });
+  it("isolates published snapshots and checks ownership/revocation", async () => {
+    const p = await draft();
+    db.update(projects)
+      .set({
+        approved: 1,
+        config: JSON.stringify({
+          ...defaults,
+          dedication: "Our Saturday adventures",
+        }),
+      })
+      .where(eq(projects.id, p.id))
+      .run();
     const g = publish(owned(p.id, p.owner));
     db.update(projects)
       .set({
-        config: JSON.stringify({ ...defaults, message: "Changed later" }),
+        config: JSON.stringify({
+          ...defaults,
+          message: "Changed later",
+          dedication: "Another thought",
+        }),
       })
       .where(eq(projects.id, p.id))
       .run();
     expect(JSON.parse(shared(g.token).snapshot).config.message).toBe(
       defaults.message,
     );
+    expect(JSON.parse(shared(g.token).snapshot).config.dedication).toBe(
+      "Our Saturday adventures",
+    );
     expect(() => owned(p.id, "intruder")).toThrow("not found");
     db.update(gifts).set({ revoked: 1 }).where(eq(gifts.id, g.id)).run();
     expect(() => shared(g.token)).toThrow("no longer");
+  });
+  it("reads legacy drafts without inventing a personal detail or rewriting storage", async () => {
+    const p = await draft();
+    const { dedication: _removed, ...legacy } = defaults;
+    db.update(projects)
+      .set({ config: JSON.stringify(legacy) })
+      .where(eq(projects.id, p.id))
+      .run();
+    expect(projectView(owned(p.id, p.owner)).config.dedication).toBe("");
+    expect(JSON.parse(owned(p.id, p.owner).config)).not.toHaveProperty(
+      "dedication",
+    );
   });
   it("removes files and shared access without resetting quota history", async () => {
     const p = await draft(),
