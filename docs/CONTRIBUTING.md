@@ -1,6 +1,6 @@
 # Contributing to DoodleQuest
 
-Start with the [README](README.md) for local setup and the product overview. Read [Architecture](ARCHITECTURE.md) before changing the creator flow, worker, storage or game state. The [configuration reference](docs/configuration.md) describes environment variables, and [operations](docs/operations.md) covers the persistent web/worker deployment.
+Start with the [README](../README.md) for local setup and the product overview. Read [Architecture](ARCHITECTURE.md) before changing the creator flow, worker, storage or game state. The [configuration reference](configuration.md) describes environment variables, and [operations](operations.md) covers the persistent web/worker deployment.
 
 ## Before changing code
 
@@ -8,13 +8,13 @@ Start with the [README](README.md) for local setup and the product overview. Rea
 2. Fetch `origin`. Fast-forward the local base branch only when the working tree and branch state make that safe; do not reset local commits or overwrite changes to force a sync.
 3. Use a focused branch, with `codex/` for agent-created branches by default. If creating a worktree, copy the matching non-versioned `.env*` files from the main/master checkout before local app or authentication verification. Keep their contents out of logs and commits. Review `DATA_DIR` so a worktree does not unintentionally share another checkout's runtime storage.
 4. Run `npm ci` with Node 24, matching the Docker runtime. Keep dependency changes and the lockfile consistent.
-5. Read the relevant guide shipped with the installed Next.js version in `node_modules/next/dist/docs/`. This repository uses Next.js 16.3.8; older examples can describe different APIs. Follow [AGENTS.md](AGENTS.md).
+5. Read the relevant guide shipped with the installed Next.js version in `node_modules/next/dist/docs/`. This repository uses Next.js 16.3.8; older examples can describe different APIs. Follow [AGENTS.md](../AGENTS.md).
 
 For a fresh checkout without existing local environment files, follow the README's `.env.example` setup. Keep the default example mode for ordinary development; the playable procedural Pip sample needs no provider credentials.
 
 ## Commands
 
-Run these from the repository root. The definitions live in [package.json](package.json).
+Run these from the repository root. The definitions live in [package.json](../package.json).
 
 | Command                                     | Purpose and side effects                                                                                                                                                                                                    |
 | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -62,7 +62,7 @@ On a clean checkout, generated route declarations may be absent even though `nex
 There is currently no `lint` npm script. For Markdown edits, use the installed formatter on only the changed files:
 
 ```sh
-npx prettier --check README.md CONTRIBUTING.md
+npx prettier --check README.md docs/CONTRIBUTING.md
 ```
 
 Replace the file list with the files you changed; use `--write` to apply formatting. Avoid a repository-wide formatting pass as part of an unrelated fix.
@@ -104,7 +104,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-[playwright.config.ts](playwright.config.ts) runs one worker, does not reuse an existing server and launches [scripts/test-server.ts](scripts/test-server.ts). The launcher sets:
+[playwright.config.ts](../playwright.config.ts) runs one worker, does not reuse an existing server and launches [scripts/test-server.ts](../scripts/test-server.ts). The launcher sets:
 
 - A fresh `doodlequest-e2e-*` directory under the OS temporary directory for SQLite and private assets.
 - `APP_ORIGIN=http://localhost:3107` and `PORT=3107`.
@@ -113,7 +113,7 @@ npm run test:e2e
 
 Do not start your own server on port 3107 or run multiple browser suites concurrently in the same checkout. Stop the existing process you own before retrying a port conflict. The temporary test database is separate from your normal drafts; the launcher does not delete its temporary directory afterward. If cleaning it up, identify the exact directory for the completed run and ensure no process still uses it.
 
-Unit tests also use a fresh `doodlequest-unit-*` temporary data directory through [tests/setup.ts](tests/setup.ts). The server contract tests mock provider responses. Neither unit nor browser tests establish live Tripo generation or billing behavior.
+Unit tests also use a fresh `doodlequest-unit-*` temporary data directory through [tests/setup.ts](../tests/setup.ts). The server contract tests mock provider responses. Neither unit nor browser tests establish live Tripo generation or billing behavior.
 
 ### Evidence and reports
 

@@ -1,8 +1,8 @@
 # Operations and troubleshooting
 
-[Back to README](../README.md) · [Configuration](configuration.md) · [Architecture](../ARCHITECTURE.md)
+[Back to README](../README.md) · [Configuration](configuration.md) · [Architecture](ARCHITECTURE.md)
 
-DoodleQuest runs as one Next.js web process and one Node worker on **one persistent node**. They share a SQLite database and private assets on local disk. The deployment configuration is supplied, but Docker, hosted HTTPS and backup/restore remain unverified in the [delivery record](../COMPLETION.md).
+DoodleQuest runs as one Next.js web process and one Node worker on **one persistent node**. They share a SQLite database and private assets on local disk. The deployment configuration is supplied, but Docker, hosted HTTPS and backup/restore remain unverified in the [delivery record](COMPLETION.md).
 
 ## Process and storage layout
 
@@ -93,19 +93,19 @@ Worker claims use 120-second leases, so restart recovery can wait for an outstan
 
 ## Troubleshooting
 
-| Symptom                                                           | Check or recovery                                                                                                                                                                          |
-| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Creator actions return “This action must come from this website.” | Match the browser scheme, hostname and port to `APP_ORIGIN`. Restart after configuration changes. Use `localhost` consistently instead of switching to `127.0.0.1`.                        |
-| Creator session expired or drafts disappeared                     | Use the original browser/profile and cookie. Owner sessions last 90 days; there is no recovery via the creator access code. An expired or lost cookie cannot reclaim its drafts.           |
-| “The host has not configured creator access.”                     | Set `CREATOR_ACCESS_CODE` on the server and restart the web process. Keep web and worker settings consistent.                                                                              |
-| Quota reached                                                     | Both lifetime session and installation counts apply. Failed/uncertain attempts and deleted projects still count. Review usage before intentionally changing the host's cap.                |
-| A generic request failure after moving data                       | Confirm both processes resolve the same `DATA_DIR`, the directory is writable and its database and assets were moved together.                                                             |
-| Generation never advances                                         | Confirm the separate worker is running. Inspect its logs and the recovery table; a page returning 200 is not worker health evidence.                                                       |
-| Gift publication was not confirmed                                | Use **Check saved gift links** in the wrapping dialog. It checks existing snapshots without another publication request. A closed dialog does not revoke an already saved gift.            |
-| Copying the gift link fails                                       | Select and copy the read-only link manually. The UI reports success only after the clipboard operation resolves.                                                                           |
-| Deleting a project returns a busy-worker message                  | Wait for the current worker lease to finish or expire, then retry. Access is removed transactionally on deletion; failed file unlinks remain queued for the worker.                        |
-| Model or WebGL fails to load                                      | Use the readable alternative, try low rendering quality, and inspect model validation or browser errors. Reloading the preview does not start generation.                                  |
-| Port 3107 is occupied during browser tests                        | Stop the conflicting service you own before testing. The isolated harness intentionally refuses to reuse an existing server. See [Contributing](../CONTRIBUTING.md#verification-workflow). |
+| Symptom                                                           | Check or recovery                                                                                                                                                                       |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Creator actions return “This action must come from this website.” | Match the browser scheme, hostname and port to `APP_ORIGIN`. Restart after configuration changes. Use `localhost` consistently instead of switching to `127.0.0.1`.                     |
+| Creator session expired or drafts disappeared                     | Use the original browser/profile and cookie. Owner sessions last 90 days; there is no recovery via the creator access code. An expired or lost cookie cannot reclaim its drafts.        |
+| “The host has not configured creator access.”                     | Set `CREATOR_ACCESS_CODE` on the server and restart the web process. Keep web and worker settings consistent.                                                                           |
+| Quota reached                                                     | Both lifetime session and installation counts apply. Failed/uncertain attempts and deleted projects still count. Review usage before intentionally changing the host's cap.             |
+| A generic request failure after moving data                       | Confirm both processes resolve the same `DATA_DIR`, the directory is writable and its database and assets were moved together.                                                          |
+| Generation never advances                                         | Confirm the separate worker is running. Inspect its logs and the recovery table; a page returning 200 is not worker health evidence.                                                    |
+| Gift publication was not confirmed                                | Use **Check saved gift links** in the wrapping dialog. It checks existing snapshots without another publication request. A closed dialog does not revoke an already saved gift.         |
+| Copying the gift link fails                                       | Select and copy the read-only link manually. The UI reports success only after the clipboard operation resolves.                                                                        |
+| Deleting a project returns a busy-worker message                  | Wait for the current worker lease to finish or expire, then retry. Access is removed transactionally on deletion; failed file unlinks remain queued for the worker.                     |
+| Model or WebGL fails to load                                      | Use the readable alternative, try low rendering quality, and inspect model validation or browser errors. Reloading the preview does not start generation.                               |
+| Port 3107 is occupied during browser tests                        | Stop the conflicting service you own before testing. The isolated harness intentionally refuses to reuse an existing server. See [Contributing](CONTRIBUTING.md#verification-workflow). |
 
 ## Live smoke test
 
@@ -116,6 +116,6 @@ Worker claims use 120-second leases, so restart recovery can wait for an outstan
 3. Refresh the browser and restart the worker while polling. Verify the same task ID and exactly one provider submission/charge using the provider's records.
 4. Verify provider success, the reviewed output host, copied GLB budgets, browser loading, forward adjustment, approval and full gameplay with that actual model. Local asset failure must not regenerate.
 5. Publish a snapshot, open it in a separate recipient browser context, complete the adventure and capture actual provenance and gameplay. Verify revocation and project deletion.
-6. Update [COMPLETION.md](../COMPLETION.md) and [ASSET_PROVENANCE.md](../ASSET_PROVENANCE.md) only with observed results. Review redistribution permissions before committing any generated model or evidence containing personal artwork.
+6. Update [COMPLETION.md](COMPLETION.md) and [ASSET_PROVENANCE.md](ASSET_PROVENANCE.md) only with observed results. Review redistribution permissions before committing any generated model or evidence containing personal artwork.
 
 Mock tests, configuration responses and the bundled procedural hero do not establish a successful paid generation, billing behavior or deployed acceptance.

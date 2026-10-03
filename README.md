@@ -49,21 +49,21 @@ Mouse, touch and keyboard controls share the same quest. Pause, reduced motion, 
 
 ## Documentation
 
-| Guide                                                                    | Use it for                                                                            |
-| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
-| [Configuration](docs/configuration.md)                                   | Environment variables, modes, credentials, quotas and local ports.                    |
-| [Operations and troubleshooting](docs/operations.md)                     | Web/worker deployment, persistent storage, generation recovery and live verification. |
-| [Creator and recipient guide](docs/experience.md)                        | Making, playing, sharing, revoking and deleting gifts.                                |
-| [Contributing](CONTRIBUTING.md)                                          | Development commands, focused tests, recording evidence and Git conventions.          |
-| [Architecture](ARCHITECTURE.md)                                          | Source map, ownership, snapshots, worker reliability and rendering budgets.           |
-| [Verification record](COMPLETION.md)                                     | Dated check results, measurements and unverified layers.                              |
-| [Asset provenance](ASSET_PROVENANCE.md)                                  | Origins and permissions for drawings, geometry, music and generated assets.           |
-| [Demo script](DEMO_SCRIPT.md) · [Asset board](evidence/asset-board.html) | Recorded product evidence and suggested narration.                                    |
-| [Drawing reveal](REVEAL.md) · [Submission notes](SUBMISSION.md)          | Feature-specific evidence and the conditional event submission draft.                 |
+| Guide                                                                         | Use it for                                                                            |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| [Configuration](docs/configuration.md)                                        | Environment variables, modes, credentials, quotas and local ports.                    |
+| [Operations and troubleshooting](docs/operations.md)                          | Web/worker deployment, persistent storage, generation recovery and live verification. |
+| [Creator and recipient guide](docs/experience.md)                             | Making, playing, sharing, revoking and deleting gifts.                                |
+| [Contributing](docs/CONTRIBUTING.md)                                          | Development commands, focused tests, recording evidence and Git conventions.          |
+| [Architecture](docs/ARCHITECTURE.md)                                          | Source map, ownership, snapshots, worker reliability and rendering budgets.           |
+| [Verification record](docs/COMPLETION.md)                                     | Dated check results, measurements and unverified layers.                              |
+| [Asset provenance](docs/ASSET_PROVENANCE.md)                                  | Origins and permissions for drawings, geometry, music and generated assets.           |
+| [Demo script](docs/DEMO_SCRIPT.md) · [Asset board](evidence/asset-board.html) | Recorded product evidence and suggested narration.                                    |
+| [Drawing reveal](docs/REVEAL.md) · [Submission notes](docs/SUBMISSION.md)     | Feature-specific evidence and the conditional event submission draft.                 |
 
 ## Delivery status
 
-This is a locally verified prototype. [COMPLETION.md](COMPLETION.md) records unit, Chromium, build and rendering checks with their dates and scopes; it is not a claim that every check has just been rerun. The [92.56-second baseline walkthrough](evidence/walkthrough.mp4) uses procedural Pip and predates later feature recordings.
+This is a locally verified prototype. [COMPLETION.md](docs/COMPLETION.md) records unit, Chromium, build and rendering checks with their dates and scopes; it is not a claim that every check has just been rerun. The [92.56-second baseline walkthrough](evidence/walkthrough.mp4) uses procedural Pip and predates later feature recordings.
 
 Live Tripo output, Docker deployment, hosted HTTPS, backup/restore, Safari/Firefox and physical device/audio behavior remain unverified in that record. Deployment requires **one persistent node with shared local SQLite and asset storage**; ephemeral serverless hosting is unsuitable.
 

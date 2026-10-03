@@ -57,7 +57,7 @@ The introduction does not bypass quest prerequisites. The letter's opening is a 
 | Keyboard and touch                | DOM buttons offer the same quest and wonder actions as pointer controls. Long letters have a scrollable reading area.                                                                                  |
 | Low quality and no WebGL          | Lower rendering quality reduces rendering cost. If 3D is unavailable, the readable alternative keeps story controls and describes optional moments in words.                                           |
 
-These authored effects require no extra generation, credentials, audio downloads or microphone access. Chromium keyboard and emulated touch checks are recorded in [COMPLETION.md](../COMPLETION.md); physical devices, screen-reader behavior and physical audio playback remain separate unverified layers.
+These authored effects require no extra generation, credentials, audio downloads or microphone access. Chromium keyboard and emulated touch checks are recorded in [COMPLETION.md](COMPLETION.md); physical devices, screen-reader behavior and physical audio playback remain separate unverified layers.
 
 ## Privacy and sharing
 

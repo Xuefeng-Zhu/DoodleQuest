@@ -6,11 +6,11 @@ The delivered screen recording uses the clearly labeled procedural sample. Repea
 | ------ | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | 0–10s  | Landing, original drawing, interactive island | “Your drawing deserves a world. A small playable gift, made from the heart.”                                                        |
 | 10–25s | Creator: Pip drawing beside rotatable hero    | “This is our original drawing. This demo hero is procedural. With Tripo configured, your drawing becomes a 3D interpretation here.” |
-| 25–35s | Recipient, optional saying, personal note     | “Add a little saying only you share. Write their letter. The adventure stays handcrafted.”                                         |
+| 25–35s | Recipient, optional saying, personal note     | “Add a little saying only you share. Write their letter. The adventure stays handcrafted.”                                          |
 | 35–45s | Preview: enable Gentle sounds, Open my gift   | “A little world, made for someone special.”                                                                                         |
-| 45–60s | Bell gate: circle → triangle → star           | “Three little bells. Remember those notes.”                                                                                        |
-| 60–70s | Collect and carry star with its paper tag      | “Your hero carries your little saying, all the way to their letter.”                                                                 |
-| 70–80s | Mailbox, sealed envelope, open the letter      | “The notes come home, with a letter written just for you.”                                                                          |
+| 45–60s | Bell gate: circle → triangle → star           | “Three little bells. Remember those notes.”                                                                                         |
+| 60–70s | Collect and carry star with its paper tag     | “Your hero carries your little saying, all the way to their letter.”                                                                |
+| 70–80s | Mailbox, sealed envelope, open the letter     | “The notes come home, with a letter written just for you.”                                                                          |
 | 80–90s | Wrap this gift, review, seal and copy link    | “One last look. A ribbon. A little world, ready to give.”                                                                           |
 
 Capture actual screen interaction, not a cinematic trailer. Show provenance only with no API key/access code. Measured recording duration is listed in `COMPLETION.md`.

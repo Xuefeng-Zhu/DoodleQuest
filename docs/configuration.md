@@ -1,6 +1,6 @@
 # Configuration
 
-[Back to README](../README.md) · [Operations](operations.md) · [Contributing](../CONTRIBUTING.md)
+[Back to README](../README.md) · [Operations](operations.md) · [Contributing](CONTRIBUTING.md)
 
 Start from [`.env.example`](../.env.example). Application defaults and validation live in [`src/server/env.ts`](../src/server/env.ts). Keep secrets in the server environment or ignored local environment files; never use `NEXT_PUBLIC_` for credentials or commit them.
 
@@ -54,7 +54,7 @@ The browser flow checks consent and session access before reserving an attempt. 
 
 Changing `CREATOR_ACCESS_CODE` affects future unlocks; it does not relock sessions that are already unlocked. The current session implementation keeps that state until the fixed session expiry.
 
-The current [`Tripo adapter`](../src/server/tripo.ts) requests textured image-to-model output with `face_limit: 20000`, standard textures, `pbr: false`, `enable_image_autofix: false` and geometry compression. It does not implement sketch enhancement or rigging. Stored output must independently pass the [asset budgets](../ARCHITECTURE.md#asset-and-scene-budgets). Review current provider pricing and terms before a paid run.
+The current [`Tripo adapter`](../src/server/tripo.ts) requests textured image-to-model output with `face_limit: 20000`, standard textures, `pbr: false`, `enable_image_autofix: false` and geometry compression. It does not implement sketch enhancement or rigging. Stored output must independently pass the [asset budgets](ARCHITECTURE.md#asset-and-scene-budgets). Review current provider pricing and terms before a paid run.
 
 Refreshes and model-preview failures do not start new paid generations. A known task ID resumes polling after a worker restart. An uncertain submit without a saved task ID stops for review; use the [recovery table](operations.md#generation-recovery).
 
@@ -69,7 +69,7 @@ npm run worker
 
 Run `db:seed` first if the sample PNG needs regeneration. The CLI requires a provider key and the exact `--confirm-paid` argument. It creates its own unlocked owner session and reserves quota directly; it does **not** use the browser access-code or consent form. Run it only as a trusted operator. Each invocation creates a new project and can consume another attempt.
 
-The result is cached in protected storage and inspectable locally in SQLite. The CLI does not return a browser owner cookie, approve the model, publish a gift or place a distributable model in `public/`. Use the creator UI for visual approval and sharing. Review redistribution permissions and update [asset provenance](../ASSET_PROVENANCE.md) before bundling a real output; none is currently distributed.
+The result is cached in protected storage and inspectable locally in SQLite. The CLI does not return a browser owner cookie, approve the model, publish a gift or place a distributable model in `public/`. Use the creator UI for visual approval and sharing. Review redistribution permissions and update [asset provenance](ASSET_PROVENANCE.md) before bundling a real output; none is currently distributed.
 
 ## Provider references
 
@@ -77,4 +77,4 @@ The original integration review was recorded on **2026-09-30**. These references
 
 - [Original generation entry](https://platform.tripo3d.ai/docs/generation) and [image-generation entry](https://platform.tripo3d.ai/docs/generate-image).
 - [v2 to v3 migration](https://developers.tripo3d.ai/en/docs/migration-v2-to-v3), [image-to-model](https://developers.tripo3d.ai/en/docs/generation-image-to-model/standard), [file upload](https://developers.tripo3d.ai/en/docs/files), [task retrieval](https://developers.tripo3d.ai/en/docs/task-query), and [rate limits](https://developers.tripo3d.ai/en/docs/rate-limits).
-- [Tripothon S1](https://developers.tripo3d.ai/en/events/tripothon-s1); submission context is in [SUBMISSION.md](../SUBMISSION.md).
+- [Tripothon S1](https://developers.tripo3d.ai/en/events/tripothon-s1); submission context is in [SUBMISSION.md](SUBMISSION.md).
