@@ -1,0 +1,74 @@
+.backdrop {
+  --world-sky: #d9e9e3;
+  --world-horizon: #f7f2df;
+  --world-paper: #f8f5eb;
+  --world-sun: #f6df9b;
+  --world-cloud: #fffdf3;
+  --world-hill-far: #d4e0d1;
+  --world-hill-mid: #bfd3ba;
+  --world-hill-near: #a9c6a6;
+  --world-tree: #9bb998;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+
+.backdrop[data-world-backdrop="sunset"] {
+  --world-sky: #ecd8d5;
+  --world-horizon: #faebd7;
+  --world-sun: #f6cf8c;
+  --world-hill-far: #e0d6cd;
+  --world-hill-mid: #d1ccba;
+  --world-hill-near: #b8bca2;
+  --world-tree: #aeb296;
+}
+
+.backdrop[data-world-backdrop="sky"] {
+  --world-sky: #d5e7f0;
+  --world-horizon: #edf4ed;
+  --world-sun: #f8e7b3;
+  --world-hill-far: #d0dfe0;
+  --world-hill-mid: #b7d1cf;
+  --world-hill-near: #a4c5bd;
+  --world-tree: #92b7ad;
+}
+
+.backdrop svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* The canvas remains transparent; DOM controls stay above both visual layers. */
+.backdrop ~ :global(.game-scene) {
+  z-index: 1;
+}
+
+:global(.game-page.is-revealing) .backdrop {
+  opacity: 0.48;
+}
+
+:global(.game-page.completed) .backdrop {
+  opacity: 0.76;
+}
+
+.preview {
+  inset: 0 -12px 4px;
+  border-radius: 46% 44% 43% 48%;
+  mask-image: radial-gradient(ellipse, #000 48%, transparent 73%);
+}
+
+@media (max-width: 760px) {
+  .backdrop .sun {
+    transform: translateX(-350px);
+  }
+
+  /* Leave a quiet patch of sky behind the opening and reveal headings. */
+  :global(.game-page:has(.gift-opening)) .sun,
+  :global(.game-page.is-revealing) .sun {
+    transform: translateX(-180px);
+  }
+}

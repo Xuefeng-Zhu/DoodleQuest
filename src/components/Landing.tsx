@@ -9,6 +9,7 @@ import {
   Gift as GiftIcon,
 } from "lucide-react";
 import Scene from "./Scene";
+import WorldBackdrop from "./WorldBackdrop";
 import { example } from "@/domain/config";
 import Header from "./Header";
 export default function Landing() {
@@ -46,6 +47,7 @@ export default function Landing() {
             </p>
           </div>
           <div className="hero-art">
+            <WorldBackdrop palette={example.config.palette} preview />
             <div className="orbit orbit-one" />
             <div className="orbit orbit-two" />
             <div className="scene-window">
