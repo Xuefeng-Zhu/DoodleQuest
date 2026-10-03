@@ -20,6 +20,7 @@ import {
 } from "@/domain/quest";
 import { useGame, movementProgress } from "./game/store";
 import Scene from "./Scene";
+import WorldBackdrop from "./WorldBackdrop";
 import GiftReveal from "./GiftReveal";
 import GiftLetter from "./GiftLetter";
 import DedicationTag from "./DedicationTag";
@@ -108,6 +109,7 @@ export default function Game({
       data-paused={game.paused}
       data-scene-ready={ready}
     >
+      <WorldBackdrop palette={gift.config.palette} />
       <header className="game-top">
         <Link href={preview ? "/create" : "/"} className="back-link">
           <ArrowLeft size={17} />
