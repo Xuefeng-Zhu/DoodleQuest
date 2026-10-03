@@ -1,8 +1,8 @@
 // AUTOMATED TESTS ONLY. Never selected without the explicit E2E flag; blocked in production.
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import type { TripoProvider } from "./tripo";
-export class MockTripo implements TripoProvider {
+import type { TripoAnimationProvider } from "./tripo";
+export class MockTripo implements TripoAnimationProvider {
   async upload() {
     return "file_mock";
   }
@@ -15,8 +15,25 @@ export class MockTripo implements TripoProvider {
       id,
       status: elapsed < 2500 ? "running" : "success",
       progress: elapsed < 2500 ? 42 : 100,
-      modelUrl: "https://mock.invalid/model.glb",
+      modelUrl: id.endsWith("_retarget")
+        ? "https://mock.invalid/animated.glb"
+        : "https://mock.invalid/model.glb",
+      ...(id.endsWith("_check") ? { riggable: true, rigType: "biped" } : {}),
     };
   }
+  async rigCheck() {
+    return `mock_${Date.now()}_${randomUUID()}_check`;
+  }
+  async rig() {
+    return `mock_${Date.now()}_${randomUUID()}_rig`;
+  }
+  async retarget() {
+    return `mock_${Date.now()}_${randomUUID()}_retarget`;
+  }
 }
-export const mockDownload = () => readFile("tests/fixtures/mock.glb");
+export const mockDownload = (url = "") =>
+  readFile(
+    url.endsWith("/animated.glb")
+      ? "tests/fixtures/animated.glb"
+      : "tests/fixtures/mock.glb",
+  );

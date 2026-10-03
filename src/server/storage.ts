@@ -36,6 +36,8 @@ export class LocalStorage implements AssetStorage {
   }
 }
 export const storage = new LocalStorage();
+/** A completed provider artifact violates a fixed local safety budget. */
+export class InvalidModelError extends Error {}
 export async function saveAsset(
   projectId: string,
   kind: string,
@@ -96,7 +98,10 @@ export async function normalizeImage(data: Buffer, rotation = 0, crop = false) {
     );
   }
 }
-export async function validateModel(data: Buffer) {
+export async function validateModel(
+  data: Buffer,
+  requireSkeletalAnimation = false,
+) {
   if (data.length > 25 * 1024 * 1024)
     throw new Error("Model exceeds the 25 MB mobile budget.");
   if (
@@ -138,6 +143,27 @@ export async function validateModel(data: Buffer) {
     throw new Error(
       "Model exceeds the node/material/texture complexity budget.",
     );
+  const skins = doc.skins || [];
+  const animations = doc.animations || [];
+  let channels = 0,
+    keyframes = 0;
+  if (
+    skins.length > 8 ||
+    skins.some((skin: { joints: number[] }) => skin.joints.length > 256) ||
+    animations.length > 16
+  )
+    throw new Error("Model exceeds the skeleton or animation clip budget.");
+  for (const animation of animations) {
+    channels += animation.channels?.length || 0;
+    for (const sampler of animation.samplers || []) {
+      const input = doc.accessors?.[sampler.input];
+      keyframes += input?.count || 0;
+      if (input?.max?.[0] > 600)
+        throw new Error("Animation exceeds the ten-minute clip budget.");
+    }
+  }
+  if (channels > 4096 || keyframes > 500_000)
+    throw new Error("Model exceeds the animation channel or keyframe budget.");
   if (
     (doc.buffers || []).some((b: { uri?: string }) => b.uri) ||
     (doc.images || []).some((b: { uri?: string }) => b.uri)
@@ -161,6 +187,37 @@ export async function validateModel(data: Buffer) {
   const report = await validateBytes(new Uint8Array(data), { maxIssues: 20 });
   if (report.issues.numErrors)
     throw new Error("The generated GLB did not pass structural validation.");
+  if (requireSkeletalAnimation) {
+    const usedSkins = new Set<number>(
+      (doc.nodes || [])
+        .filter(
+          (node: { skin?: number; mesh?: number }) =>
+            node.skin !== undefined && node.mesh !== undefined,
+        )
+        .map((node: { skin: number }) => node.skin),
+    );
+    const joints = new Set<number>(
+      skins.flatMap((skin: { joints: number[] }, index: number) =>
+        usedSkins.has(index) ? skin.joints : [],
+      ),
+    );
+    if (
+      !animations.length ||
+      animations.some(
+        (animation: {
+          channels: { target: { node: number; path: string } }[];
+        }) =>
+          !animation.channels.some(
+            ({ target }) =>
+              joints.has(target.node) &&
+              ["rotation", "translation", "scale"].includes(target.path),
+          ),
+      )
+    )
+      throw new Error(
+        "The returned model has no playable skeletal animation for one or more clips.",
+      );
+  }
   let triangles = 0;
   for (const m of doc.meshes || [])
     for (const p of m.primitives || []) {
@@ -190,7 +247,17 @@ export async function validateModel(data: Buffer) {
         throw new Error("Combined textures exceed the 16-megapixel budget.");
     }
   }
-  return { bytes: data.length, triangles, extensions, validated: true };
+  return {
+    bytes: data.length,
+    triangles,
+    extensions,
+    validated: true,
+    rigged: skins.length > 0,
+    animationClips: animations.map(
+      (clip: { name?: string }, index: number): string =>
+        (clip.name || `Animation ${index + 1}`).slice(0, 160),
+    ) as string[],
+  };
 }
 export async function downloadModel(url: string) {
   const u = new URL(url);
@@ -228,7 +295,7 @@ export async function downloadModel(url: string) {
     size += r.value.length;
     if (size > 25 * 1024 * 1024) {
       await reader.cancel();
-      throw new Error("Model exceeds 25 MB.");
+      throw new InvalidModelError("Model exceeds 25 MB.");
     }
     chunks.push(r.value);
   }

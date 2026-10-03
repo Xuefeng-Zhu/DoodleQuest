@@ -5,11 +5,27 @@ export type ProviderTask = {
   status: string;
   progress?: number;
   modelUrl?: string;
+  riggable?: boolean;
+  rigType?: string;
 };
 export interface TripoProvider {
   upload(image: Buffer): Promise<string>;
   create(input: string, model: string): Promise<string>;
   retrieve(id: string): Promise<ProviderTask>;
+}
+export interface TripoAnimationProvider extends TripoProvider {
+  rigCheck(input: string): Promise<string>;
+  rig(input: string, rigType: string): Promise<string>;
+  retarget(input: string, rigType: string): Promise<string>;
+}
+export function animationPresets(rigType: string): string[] {
+  if (rigType === "biped")
+    return ["preset:biped:idle", "preset:biped:walk", "preset:biped:cheer"];
+  if (["quadruped", "hexapod", "octopod"].includes(rigType))
+    return [`preset:${rigType}:walk`];
+  if (["serpentine", "aquatic"].includes(rigType))
+    return [`preset:${rigType}:march`];
+  return [];
 }
 export class ProviderError extends Error {
   constructor(
@@ -36,7 +52,7 @@ export function mapStatus(status: string) {
       return "polling";
   }
 }
-export class LiveTripo implements TripoProvider {
+export class LiveTripo implements TripoAnimationProvider {
   private async request(endpoint: string, init: RequestInit = {}) {
     let res: Response;
     try {
@@ -113,7 +129,13 @@ export class LiveTripo implements TripoProvider {
         task_id: z.string(),
         status: z.string(),
         progress: z.number().min(0).max(100).optional(),
-        output: z.object({ model_url: z.string().url().optional() }).optional(),
+        output: z
+          .object({
+            model_url: z.string().url().optional(),
+            riggable: z.boolean().optional(),
+            rig_type: z.string().optional(),
+          })
+          .optional(),
       })
       .parse(await this.request(`/tasks/${encodeURIComponent(id)}`));
     return {
@@ -121,6 +143,45 @@ export class LiveTripo implements TripoProvider {
       status: t.status,
       progress: t.progress,
       modelUrl: t.output?.model_url,
+      riggable: t.output?.riggable,
+      rigType: t.output?.rig_type,
     };
+  }
+  private async animationTask(endpoint: string, body: object) {
+    return z.object({ task_id: z.string().min(1) }).parse(
+      await this.request(`/animations/${endpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      }),
+    ).task_id;
+  }
+  rigCheck(input: string) {
+    return this.animationTask("rig-check", { input });
+  }
+  rig(input: string, rigType: string) {
+    return this.animationTask("rig", {
+      input,
+      model: rigType === "biped" ? "v1.0-20240301" : "v2.5-20260210",
+      rig_type: rigType,
+      spec: "tripo",
+      out_format: "glb",
+    });
+  }
+  retarget(input: string, rigType: string) {
+    const animations = animationPresets(rigType);
+    if (!animations.length)
+      throw new ProviderError(
+        "This rig has no supported adventure motions.",
+        true,
+      );
+    return this.animationTask("retarget", {
+      input,
+      animations,
+      out_format: "glb",
+      bake_animation: true,
+      export_with_geometry: true,
+      animate_in_place: true,
+    });
   }
 }

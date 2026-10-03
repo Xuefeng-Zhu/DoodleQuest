@@ -57,5 +57,32 @@ export const gifts = sqliteTable("gifts", {
   revoked: integer().notNull().default(0),
   createdAt: integer().notNull(),
 });
+export const motionJobs = sqliteTable("motion_jobs", {
+  id: text().primaryKey(),
+  projectId: text().notNull(),
+  owner: text().notNull(),
+  inputAsset: text().notNull(),
+  inputRevision: integer().notNull(),
+  inputSource: text().notNull(),
+  generationTask: text().notNull(),
+  idempotencyKey: text().notNull().unique(),
+  stage: text().notNull(),
+  checkTask: text(),
+  rigTask: text(),
+  retargetTask: text(),
+  rigType: text(),
+  providerStatus: text(),
+  status: text().notNull(),
+  progress: integer(),
+  attempts: integer().notNull().default(0),
+  nextPoll: integer().notNull(),
+  leaseUntil: integer().notNull().default(0),
+  leaseToken: text(),
+  lastError: text(),
+  finalAsset: text(),
+  createdAt: integer().notNull(),
+  updatedAt: integer().notNull(),
+});
 export type Project = typeof projects.$inferSelect;
 export type Job = typeof jobs.$inferSelect;
+export type MotionJob = typeof motionJobs.$inferSelect;

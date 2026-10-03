@@ -69,6 +69,8 @@ describe("quantized model validation", () => {
       triangles: 1,
       extensions: ["KHR_mesh_quantization"],
       validated: true,
+      rigged: false,
+      animationClips: [],
     });
   });
 

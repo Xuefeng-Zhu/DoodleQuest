@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { z } from "zod";
 import { and, desc, eq, inArray } from "drizzle-orm";
-import { db } from "@/server/db";
+import { db, sqlite } from "@/server/db";
 import { assets, projects, gifts, jobs } from "@/server/schema";
 import {
   HttpError,
@@ -22,6 +22,8 @@ import {
   requestGeneration,
   publish,
   activeStatuses,
+  requestMotion,
+  assertNoActiveMotion,
 } from "@/server/repository";
 import { asset, storage, normalizeImage, saveAsset } from "@/server/storage";
 import { GiftConfigSchema } from "@/domain/config";
@@ -159,6 +161,7 @@ async function handler(
       return NextResponse.json({ deleted: true });
     }
     if (action === "drawing" && method === "POST") {
+      assertNoActiveMotion(id);
       rateLimit("uploads:" + session.id, 20, 3600_000);
       const running = db
         .select()
@@ -212,17 +215,35 @@ async function handler(
         rotation,
         crop: form.get("crop") === "true",
       });
-      db.update(projects)
-        .set({
-          inputAsset,
-          revision: p.revision + 1,
-          modelAsset: null,
-          approved: 0,
-          source: sample ? "procedural" : "tripo",
-          updatedAt: Date.now(),
+      sqlite
+        .transaction(() => {
+          assertNoActiveMotion(id);
+          const generating = db
+            .select({ id: jobs.id })
+            .from(jobs)
+            .where(
+              and(eq(jobs.projectId, id), inArray(jobs.status, activeStatuses)),
+            )
+            .get();
+          const latest = owned(id, session.id);
+          if (generating || latest.revision !== p.revision)
+            throw new HttpError(
+              409,
+              "The drawing changed or generation started. Reload the draft before replacing it.",
+            );
+          db.update(projects)
+            .set({
+              inputAsset,
+              revision: p.revision + 1,
+              modelAsset: null,
+              approved: 0,
+              source: sample ? "procedural" : "tripo",
+              updatedAt: Date.now(),
+            })
+            .where(eq(projects.id, id))
+            .run();
         })
-        .where(eq(projects.id, id))
-        .run();
+        .immediate();
       return NextResponse.json(projectView(owned(id, session.id)));
     }
     if (action === "generate" && method === "POST") {
@@ -247,15 +268,54 @@ async function handler(
       return NextResponse.json(requestGeneration(p, body.key, body.retry));
     }
     if (action === "approve" && method === "POST") {
-      const body = z.object({ loaded: z.literal(true) }).parse(await json(req));
-      if (!p.inputAsset) throw new HttpError(409, "Choose a drawing.");
-      if (!p.modelAsset && p.source !== "procedural")
-        throw new HttpError(409, "Your model is not ready.");
-      db.update(projects)
-        .set({ approved: 1, updatedAt: Date.now() })
-        .where(eq(projects.id, id))
-        .run();
+      const body = z
+        .object({
+          loaded: z.literal(true),
+          modelAsset: z.string().uuid().nullable().optional(),
+        })
+        .parse(await json(req));
+      sqlite
+        .transaction(() => {
+          const latest = owned(id, session.id);
+          if (
+            body.modelAsset !== undefined &&
+            body.modelAsset !== latest.modelAsset
+          )
+            throw new HttpError(
+              409,
+              "Your hero changed. Reload its preview before approving it.",
+            );
+          if (!latest.inputAsset) throw new HttpError(409, "Choose a drawing.");
+          if (!latest.modelAsset && latest.source !== "procedural")
+            throw new HttpError(409, "Your model is not ready.");
+          db.update(projects)
+            .set({ approved: 1, updatedAt: Date.now() })
+            .where(eq(projects.id, id))
+            .run();
+        })
+        .immediate();
       return NextResponse.json(projectView(owned(id, session.id)));
+    }
+    if (action === "animate" && method === "POST") {
+      const body = z
+        .object({
+          key: z.string().uuid(),
+          consent: z.literal(true),
+          retry: z.boolean().default(false),
+        })
+        .parse(await json(req));
+      if (!env.key && !env.mock)
+        throw new HttpError(
+          503,
+          "Configure Tripo to add movement to a generated hero.",
+        );
+      if (!session.unlocked)
+        throw new HttpError(
+          403,
+          "Enter the creator access code before paid animation.",
+        );
+      rateLimit("animate:" + session.id, 8, 3600_000);
+      return NextResponse.json(requestMotion(p, body.key, body.retry));
     }
     if (action === "publish" && method === "POST") {
       rateLimit("publish:" + session.id, 20, 3600_000);
