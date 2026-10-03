@@ -86,12 +86,13 @@ npm run test:e2e -- tests/wrapping.e2e.ts tests/adventure.e2e.ts
 npm run test:e2e -- --list
 ```
 
-| Changed area                                                     | Relevant coverage                                                                                 |
-| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| Quest rules and progression                                      | `quest.test.ts`, `adventure.e2e.ts`, `fallback.e2e.ts`                                            |
-| Sessions, uploads, snapshots, generation jobs and Tripo contract | `server.test.ts`, `adventure.e2e.ts`                                                              |
-| Reveal, celebrations, letter, dedication, wonders or melody      | Matching `*.test.ts` and `*.e2e.ts`; include `fallback.e2e.ts` when changing the text alternative |
-| Gift wrapping and publication recovery                           | `wrapping.e2e.ts`, plus the creator/share lifecycle in `adventure.e2e.ts`                         |
+| Changed area                                                     | Relevant coverage                                                                                                         |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Quest rules and progression                                      | `quest.test.ts`, `adventure.e2e.ts`, `fallback.e2e.ts`                                                                    |
+| Sessions, uploads, snapshots, generation jobs and Tripo contract | `server.test.ts`, `adventure.e2e.ts`                                                                                      |
+| Hero motion, rigging and animation recovery                      | `hero-motion.test.ts`, `motion-server.test.ts`, `hero-motion.e2e.ts`; also run the adventure and full browser regressions |
+| Reveal, celebrations, letter, dedication, wonders or melody      | Matching `*.test.ts` and `*.e2e.ts`; include `fallback.e2e.ts` when changing the text alternative                         |
+| Gift wrapping and publication recovery                           | `wrapping.e2e.ts`, plus the creator/share lifecycle in `adventure.e2e.ts`                                                 |
 
 All paths in this table are under `tests/`. Add regression coverage for meaningful new behavior or a fixed failure; preserve authorization, immutable-snapshot and progression assertions when adjusting test timing.
 

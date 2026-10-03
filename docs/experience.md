@@ -15,20 +15,30 @@ Start the app using the [quick start](../README.md#quick-start), then open `/cre
 
 **Save draft for later** retains work under the current owner session. Drafts live in server storage, while the browser cookie grants access. Keep the same browser/profile and cookie; the access code does not recover a lost session.
 
+### Let your hero move
+
+In **Meet your hero**, use **Idle**, **Walk**, and **Celebrate** to preview movements. Pip's steps and gestures are handmade. These preview buttons play locally and never spend credits.
+
+For a generated hero, optionally acknowledge credit use and choose **Bring my hero to life**. Tripo checks the shape, prepares a compatible rig, and adds the available movements. Humanoid heroes can receive idle, walking and celebration clips; other supported creatures may receive walking only. Unsupported shapes keep the selected bounce, float or sway.
+
+You can leave and reopen the draft while animation runs. **Check animation status** reads the saved result without starting another attempt. Failed or unsupported animation preserves the existing hero. After success, inspect the replacement in the preview and choose **That’s my hero** again. Previously shared gifts keep their original model.
+
+During play, a moving hero walks and returns to idle on arrival. Opening the bell gate, collecting the star, and delivering the gift each trigger one happy reaction when a matching animation exists. Continuing along the path interrupts a reaction immediately. Pause and hidden tabs freeze motion; reduced motion settles the pose. Replay clears previous reactions.
+
 ### Personalization limits
 
 These values are trimmed and validated by [`GiftConfigSchema`](../src/domain/config.ts). Names and messages render as plain text; the app does not rewrite them.
 
-| Field                 | Limit or options                                       |
-| --------------------- | ------------------------------------------------------ |
-| Recipient and creator | 1–50 characters each                                   |
-| Gift title            | 1–80 characters                                        |
-| Hero name             | 1–32 characters                                        |
-| Note                  | 1–1,200 characters; internal line breaks are preserved |
-| A little saying       | Optional, up to 60 characters                          |
-| Hero movement         | Bounce, float or sway                                  |
-| Forward direction     | −180° to 180°                                          |
-| World palette         | Meadow, sunset or sky                                  |
+| Field                 | Limit or options                                                       |
+| --------------------- | ---------------------------------------------------------------------- |
+| Recipient and creator | 1–50 characters each                                                   |
+| Gift title            | 1–80 characters                                                        |
+| Hero name             | 1–32 characters                                                        |
+| Note                  | 1–1,200 characters; internal line breaks are preserved                 |
+| A little saying       | Optional, up to 60 characters                                          |
+| Fallback motion       | Bounce, float or sway when a generated hero lacks a matching animation |
+| Forward direction     | −180° to 180°                                                          |
+| World palette         | Meadow, sunset or sky                                                  |
 
 The saying is visible from the opening, travels above the collected star and appears in the final letter. Leave it blank to omit the tag. Older gifts without a saying continue to work.
 

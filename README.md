@@ -45,6 +45,8 @@ Live browser generation requires an unlocked creator session, explicit drawing-t
 
 The gift includes a permission-aware drawing reveal, an optional 60-character saying that travels with the star, a letter containing the creator's saved note, and a wrapping review before publication. Optional flower, cloud and butterfly interactions add small moments along the path. Gentle sounds are off by default and synthesized locally.
 
+Pip has authored walking and celebration gestures. Generated heroes can optionally use Tripo rigging and animation: preview idle, walk and celebration in the workshop, then approve the result. Available movements depend on the character; unsupported shapes retain their gentle movement. See [hero motion](docs/experience.md#let-your-hero-move). Provider animation is tested with a skinned fixture, with live Tripo acceptance still unverified.
+
 Mouse, touch and keyboard controls share the same quest. Pause, reduced motion, low rendering quality and a readable no-WebGL alternative are available. See the [creator and recipient guide](docs/experience.md) for the complete flow, controls and privacy behavior.
 
 ## Documentation

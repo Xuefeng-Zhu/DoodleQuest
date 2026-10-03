@@ -107,6 +107,12 @@ Worker claims use 120-second leases, so restart recovery can wait for an outstan
 | Model or WebGL fails to load                                      | Use the readable alternative, try low rendering quality, and inspect model validation or browser errors. Reloading the preview does not start generation.                               |
 | Port 3107 is occupied during browser tests                        | Stop the conflicting service you own before testing. The isolated harness intentionally refuses to reuse an existing server. See [Contributing](CONTRIBUTING.md#verification-workflow). |
 
+### Animation recovery
+
+The workshop's **Check animation status** button only reads the saved motion job. Its stage identifies compatibility checking, rigging, or animation. The same pending/queued/polling/asset-retry/failed/uncertain rules apply to each stage, and earlier successful stages are retained. `unsupported` is terminal and preserves the original hero. On an explicit retry of a failed or uncertain stage, only that stage and its remaining successors are requested again; review uncertain submissions in the provider console first.
+
+The current hero remains usable while motion is pending or unsuccessful. A successful replacement needs approval again. If local validation cannot recognize the expected clips, investigate the saved output and error before changing clip mappings; do not regenerate automatically. Never infer live rigging quality from the authored test fixture.
+
 ## Live smoke test
 
 **Not run in the recorded delivery.** Use this checklist to collect actual provider evidence after reviewing current pricing and configuring credentials.
@@ -119,3 +125,5 @@ Worker claims use 120-second leases, so restart recovery can wait for an outstan
 6. Update [COMPLETION.md](COMPLETION.md) and [ASSET_PROVENANCE.md](ASSET_PROVENANCE.md) only with observed results. Review redistribution permissions before committing any generated model or evidence containing personal artwork.
 
 Mock tests, configuration responses and the bundled procedural hero do not establish a successful paid generation, billing behavior or deployed acceptance.
+
+For a separately authorized live animation check, use **Bring my hero to life** on the resulting model. Record the compatibility, rig, and retarget IDs and actual credits. Reload during a stage and confirm task reuse. Inspect idle/walk/celebration, orientation, ground contact, pause and reduced motion, then approve and play the complete shared gift. Verify that an older gift still uses its original model. This live animation check has not been performed in the recorded delivery.

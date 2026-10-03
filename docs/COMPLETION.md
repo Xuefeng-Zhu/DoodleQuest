@@ -2,6 +2,18 @@
 
 Verified locally on 2026-10-01. This is a working vertical-slice prototype, not a deployed production service or a verified live Tripo submission.
 
+## Hero movement and reactions — 2026-10-02
+
+The hero plays idle and walking clips, crossfades between them, and reacts once when the bell gate opens, the star is collected, and the gift is delivered. Travel can interrupt a reaction. Per-instance skeletons and mixers prevent cached models from sharing bone state. Pause and hidden tabs freeze playback, reduced motion settles the pose without delayed reactions, and replay resets the motion state. Pip has authored limb/head movement; it remains procedural. Generated heroes use the selected fallback motion when a matching clip is unavailable.
+
+The workshop has local **Idle / Walk / Celebrate** previews and a separate **Bring my hero to life** action with explicit credit consent. Tripo compatibility, rigging, and retarget stages are durable and retain their task IDs. Unknown submissions stop as uncertain. Explicit retries retain completed earlier stages. Transient delivery failures retry the same output; permanently invalid, unsupported or oversized animation stops without locking the draft. The original hero remains available until valid replacement, which requires approval again. Existing gift versions retain their old asset. A confirmed POST receipt survives failed later reads, and unconfirmed responses have a read-only status recovery path.
+
+**96 unit/server tests, all 42 Chromium tests, TypeScript, production build, and `git diff --check` passed.** The browser suite ran in two groups: 10 focused tests passed in 4.2 minutes, and the remaining 32 regressions passed in 9.6 minutes. The focused tests cover the existing creator/share lifecycle and three new motion cases. They exercise the actual local mock worker, consent, a deliberately lost successful POST response, refresh recovery to one job, genuine skeletal deformation, clip previews, the same protected animated asset in a recipient context, recipient mutation denial, walking, three one-shot reactions, pause, replay, mobile reduced motion and failed status reads. The confirmed-receipt/read-failure case uses explicit browser route fixtures. Hidden-tab checks inject visibility state; they do not establish operating-system background behavior.
+
+The original animated test character has **1,860 triangles, six bones, three clips, and 343,116 bytes**. glTF validation reports zero errors and warnings. A CPU mixer check also verifies real vertex deformation, not just a rigid model moving around. It is an authored fixture, not Tripo-generated or Tripo-rigged output. No paid provider call was made.
+
+Visually reviewed evidence includes `hero-motion-preview-idle.png`, `hero-motion-preview-cheer.png`, `hero-motion-gate-cheer.png`, and the mobile procedural motion captures. The existing `THREE.Clock` deprecation remains; missing-model, lost-response and failed-read errors are intentionally exercised. Live Tripo generation/rigging, provider clip names and visual quality, physical touch/GPU performance, Safari/Firefox, and deployed hosting remain unverified. The isolated local production example on port 3006 returned HTTP 200 with paid generation disabled.
+
 ## Wrapping the gift becomes a moment — 2026-10-01
 
 - **Preview & share → Wrap this gift** opens a quiet paper-and-ribbon review. The recipient tag, unchanged note, optional saying and original-drawing permission remain visible. Cancel or Escape before sealing publishes nothing. The native modal makes the workshop inert and returns focus when closed.

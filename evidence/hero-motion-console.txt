@@ -1,0 +1,1 @@
+No uncaught application exceptions in hero motion tests. All provider output is explicitly mocked.

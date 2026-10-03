@@ -14,6 +14,11 @@ import {
 } from "lucide-react";
 import Header from "./Header";
 import DedicationTag from "./DedicationTag";
+import HeroMotionControls, {
+  motionWorking,
+  type MotionJob,
+} from "./HeroMotionControls";
+import type { HeroMotion } from "@/domain/hero-motion";
 import GiftWrapping, {
   UnconfirmedPublication,
   type WrappedGift,
@@ -53,6 +58,7 @@ type Project = {
   drawingUrl: string | null;
   modelUrl: string | null;
   job: Job | null;
+  motionJob?: MotionJob | null;
   shares: { id: string; token: string; version: number; revoked: number }[];
 };
 const states: Record<string, string> = {
@@ -130,9 +136,23 @@ export default function Creator() {
     [elapsed, setElapsed] = useState(0);
   const dirty = useRef(false);
   const key = useRef("");
+  const motionRequest = useRef<{ key: string; priorId: string | null } | null>(
+    null,
+  );
+  const [previewMotion, setPreviewMotion] = useState<{
+    name: HeroMotion;
+    request: number;
+  }>({ name: "idle", request: 0 });
   const [wrapping, setWrapping] = useState(false);
   const wrappingBaseline = useRef<string[]>([]);
   const apply = (p: Project, replaceConfig = true) => {
+    if (
+      p.modelAsset !== project?.modelAsset ||
+      p.inputAsset !== project?.inputAsset
+    ) {
+      setLoaded(false);
+      setPreviewMotion({ name: "idle", request: 0 });
+    }
     setProject(p);
     if (replaceConfig) {
       setConfig(p.config);
@@ -159,13 +179,15 @@ export default function Creator() {
         if (existing) {
           apply(existing);
           setStep(
-            existing.approved
-              ? 3
-              : existing.inputAsset
-                ? existing.modelAsset || existing.source === "procedural"
-                  ? 2
-                  : 1
-                : 0,
+            motionWorking(existing.motionJob)
+              ? 2
+              : existing.approved
+                ? 3
+                : existing.inputAsset
+                  ? existing.modelAsset || existing.source === "procedural"
+                    ? 2
+                    : 1
+                  : 0,
           );
         }
       } catch (e) {
@@ -223,19 +245,57 @@ export default function Creator() {
     };
   }, [file, rotation, crop]);
   useEffect(() => {
-    if (!project?.job || !working.includes(project.job.status)) return;
-    const timer = setInterval(async () => {
+    if (
+      !project ||
+      (!working.includes(project.job?.status || "") &&
+        !motionWorking(project.motionJob))
+    )
+      return;
+    const controller = new AbortController();
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const poll = async () => {
       try {
-        const p = await api(`projects/${project.id}`);
+        const p: Project = await api(
+          `projects/${project.id}`,
+          "GET",
+          undefined,
+          controller.signal,
+        );
+        if (cancelled) return;
+        if (p.modelAsset !== project.modelAsset) {
+          setLoaded(false);
+          setPreviewMotion({ name: "idle", request: 0 });
+          setStep(2);
+        }
         setProject(p);
-        setElapsed(Math.floor((Date.now() - p.job.createdAt) / 1000));
-        if (p.job.status === "ready") setStep(2);
+        if (p.job)
+          setElapsed(Math.floor((Date.now() - p.job.createdAt) / 1000));
+        if (
+          p.job?.status === "ready" &&
+          working.includes(project.job?.status || "")
+        )
+          setStep(2);
       } catch (e) {
-        setError((e as Error).message);
+        if (!cancelled) setError((e as Error).message);
       }
-    }, 1500);
-    return () => clearInterval(timer);
-  }, [project?.id, project?.job?.status]);
+      if (!cancelled) timer = setTimeout(poll, 1500);
+    };
+    timer = setTimeout(poll, 1500);
+    return () => {
+      cancelled = true;
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [
+    project?.id,
+    project?.modelAsset,
+    project?.job?.status,
+    project?.motionJob?.status,
+  ]);
+  useEffect(() => {
+    motionRequest.current = null;
+  }, [project?.id, project?.modelAsset]);
   const ready = useCallback(() => setLoaded(true), []),
     failed = useCallback(() => {
       setLoaded(false);
@@ -328,6 +388,56 @@ export default function Creator() {
     apply(await api(`projects/${project.id}`));
     setLoaded(false);
     setStep(1);
+  };
+  const animate = async (retry: boolean) => {
+    if (!project) return;
+    const saved = await save();
+    // A fresh read may reveal a result accepted after an earlier response was
+    // lost, or another tab's attempt. Show it before offering a new paid retry.
+    if (
+      saved.motionJob &&
+      saved.motionJob.id !==
+        (motionRequest.current?.priorId ?? project.motionJob?.id)
+    ) {
+      motionRequest.current = null;
+      setNotice(
+        "Your saved animation attempt is shown below. Review its status before requesting another attempt.",
+      );
+      return;
+    }
+    motionRequest.current ||= {
+      key: crypto.randomUUID(),
+      priorId: saved.motionJob?.id ?? null,
+    };
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20_000);
+    try {
+      const job: MotionJob = await api(
+        `projects/${project.id}/animate`,
+        "POST",
+        {
+          key: motionRequest.current.key,
+          consent: true,
+          retry,
+        },
+        controller.signal,
+      );
+      // The durable receipt is sufficient. Polling can recover any later read
+      // failure without leaving a stale retry button for the previous attempt.
+      apply({ ...saved, motionJob: job }, false);
+      motionRequest.current = null;
+    } catch (e) {
+      // Keep this request identity after an unconfirmed response. A deliberate
+      // retry from this page cannot enqueue a second paid animation pipeline.
+      throw new Error(
+        `${(e as Error).message} Check animation status before trying again.`,
+      );
+    } finally {
+      clearTimeout(timeout);
+    }
+    setNotice(
+      "Your animation request is saved. You can leave and resume this draft.",
+    );
   };
   const publishWrappedGift = async (
     stage: (phase: "saving" | "publishing") => void,
@@ -761,6 +871,7 @@ export default function Creator() {
                       busy ||
                       !consent ||
                       !unlocked ||
+                      motionWorking(project?.motionJob) ||
                       (!!project?.job && working.includes(project.job.status))
                     }
                     onClick={() => run(() => generate(!!project?.job))}
@@ -825,6 +936,7 @@ export default function Creator() {
                     <HeroPreview
                       key={project?.modelAsset || project?.inputAsset}
                       gift={gift}
+                      previewMotion={previewMotion}
                       onReady={ready}
                       onFailure={failed}
                     />
@@ -845,6 +957,42 @@ export default function Creator() {
                 </p>
               </section>
             </div>
+            {(project?.modelAsset || project?.source === "procedural") && (
+              <HeroMotionControls
+                key={`${project.id}:${project.modelAsset || project.inputAsset}`}
+                job={
+                  project.motionJob &&
+                  (project.motionJob.inputAsset === project.modelAsset ||
+                    project.motionJob.finalAsset === project.modelAsset)
+                    ? project.motionJob
+                    : null
+                }
+                procedural={project.source === "procedural"}
+                available={mode !== "example"}
+                unlocked={unlocked}
+                busy={busy}
+                loaded={loaded}
+                previewMotion={previewMotion.name}
+                onPreview={(name) =>
+                  setPreviewMotion((p) => ({ name, request: p.request + 1 }))
+                }
+                onAnimate={(retry) => run(() => animate(retry))}
+                onRefresh={() =>
+                  run(async () => {
+                    const fresh: Project = await api(`projects/${project.id}`);
+                    if (
+                      fresh.motionJob &&
+                      fresh.motionJob.id !== motionRequest.current?.priorId
+                    )
+                      motionRequest.current = null;
+                    apply(fresh, false);
+                    setNotice(
+                      "Animation status checked. No new animation was requested.",
+                    );
+                  })
+                }
+              />
+            )}
             <section className="paper-panel">
               <div className="field-grid">
                 <label>
@@ -855,22 +1003,27 @@ export default function Creator() {
                     onChange={(e) => change("heroName", e.target.value)}
                   />
                 </label>
-                <label>
-                  A little personality
-                  <select
-                    value={config.movement}
-                    onChange={(e) =>
-                      change(
-                        "movement",
-                        e.target.value as GiftConfig["movement"],
-                      )
-                    }
-                  >
-                    <option value="bounce">A cheerful bounce</option>
-                    <option value="float">A dreamy float</option>
-                    <option value="sway">A gentle sway</option>
-                  </select>
-                </label>
+                {project?.source !== "procedural" && (
+                  <label>
+                    Fallback motion
+                    <select
+                      value={config.movement}
+                      onChange={(e) =>
+                        change(
+                          "movement",
+                          e.target.value as GiftConfig["movement"],
+                        )
+                      }
+                    >
+                      <option value="bounce">A cheerful bounce</option>
+                      <option value="float">A dreamy float</option>
+                      <option value="sway">A gentle sway</option>
+                    </select>
+                    <span className="note">
+                      Used when your hero has no animation for an action.
+                    </span>
+                  </label>
+                )}
                 <label className="wide">
                   Which way is forward? {config.forward}°
                   <input
@@ -893,6 +1046,7 @@ export default function Creator() {
                       apply(
                         await api(`projects/${p.id}/approve`, "POST", {
                           loaded: true,
+                          modelAsset: project?.modelAsset ?? null,
                         }),
                       );
                       setStep(3);

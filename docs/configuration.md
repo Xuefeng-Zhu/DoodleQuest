@@ -54,7 +54,15 @@ The browser flow checks consent and session access before reserving an attempt. 
 
 Changing `CREATOR_ACCESS_CODE` affects future unlocks; it does not relock sessions that are already unlocked. The current session implementation keeps that state until the fixed session expiry.
 
-The current [`Tripo adapter`](../src/server/tripo.ts) requests textured image-to-model output with `face_limit: 20000`, standard textures, `pbr: false`, `enable_image_autofix: false` and geometry compression. It does not implement sketch enhancement or rigging. Stored output must independently pass the [asset budgets](ARCHITECTURE.md#asset-and-scene-budgets). Review current provider pricing and terms before a paid run.
+The current [`Tripo adapter`](../src/server/tripo.ts) requests textured image-to-model output with `face_limit: 20000`, standard textures, `pbr: false`, `enable_image_autofix: false` and geometry compression. Sketch enhancement is not implemented. Optional rigging and animation are requested separately from **Meet your hero** after a model is available. Stored output must independently pass the [asset budgets](ARCHITECTURE.md#asset-and-scene-budgets). Review current provider pricing and terms before a paid run.
+
+### Optional hero animation
+
+**Bring my hero to life** requires the same unlocked creator session and a separate acknowledgement of Tripo credit use. The worker checks compatibility, creates a rig, and requests an animation set. Each provider stage can consume credits; the application's attempt quota is not a credit balance. Refreshing the page and previewing motion never submit new provider tasks.
+
+Bipeds use rig model `v1.0-20240301` and the documented idle, walk and cheer presets. Supported non-biped types use `v2.5-20260210` and their documented walk/march preset. The current avian preset list does not provide a usable movement set, so those heroes retain their existing motion. Retarget requests use GLB output, embedded animation and `animate_in_place: true`; DoodleQuest still controls navigation.
+
+An unsupported or failed animation leaves the current hero available. A successful animated GLB replaces only the matching current draft model and requires approval again. Published gifts retain their previous model. Live rigging quality, clip naming, visual orientation and provider billing remain separate verification steps; the included animated fixture is a mock.
 
 Refreshes and model-preview failures do not start new paid generations. A known task ID resumes polling after a worker restart. An uncertain submit without a saved task ID stops for review; use the [recovery table](operations.md#generation-recovery).
 
@@ -77,4 +85,5 @@ The original integration review was recorded on **2026-09-30**. These references
 
 - [Original generation entry](https://platform.tripo3d.ai/docs/generation) and [image-generation entry](https://platform.tripo3d.ai/docs/generate-image).
 - [v2 to v3 migration](https://developers.tripo3d.ai/en/docs/migration-v2-to-v3), [image-to-model](https://developers.tripo3d.ai/en/docs/generation-image-to-model/standard), [file upload](https://developers.tripo3d.ai/en/docs/files), [task retrieval](https://developers.tripo3d.ai/en/docs/task-query), and [rate limits](https://developers.tripo3d.ai/en/docs/rate-limits).
+- Animation contract reviewed 2026-10-02: [rig compatibility](https://developers.tripo3d.ai/en/docs/animations-rig-check), [rigging](https://developers.tripo3d.ai/en/docs/animations-rig), and [animation retargeting](https://developers.tripo3d.ai/en/docs/animations-retarget).
 - [Tripothon S1](https://developers.tripo3d.ai/en/events/tripothon-s1); submission context is in [SUBMISSION.md](SUBMISSION.md).
