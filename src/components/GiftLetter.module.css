@@ -1,0 +1,111 @@
+.letter {
+  --letter-paper: #fffef9;
+  --envelope-paper: #e9e2d3;
+  color: var(--ink, #233f35);
+}
+
+.letter :global(.letter-intro h1),
+.letter :global(.letter-sheet h1),
+.letter :global(.envelope-address strong),
+.letter :global(.letter-signature strong) {
+  color: var(--ink, #233f35);
+  font-style: normal;
+  font-weight: 550;
+}
+
+.letter :global(.letter-intro .eyebrow) {
+  color: var(--rust, #b65132);
+  letter-spacing: 0.12em;
+}
+
+.letter :global(.letter-intro p),
+.letter :global(.letter-sender),
+.letter :global(.envelope-address small),
+.letter :global(.letter-signature > span),
+.letter :global(.letter-postscript),
+.letter :global(.letter-melody p),
+.letter :global(.letter-keepsake figcaption) {
+  color: var(--muted, #626f67);
+}
+
+.letter :global(.letter-envelope) {
+  border-radius: 3px;
+  color: var(--ink, #233f35);
+  transform: none;
+  filter: drop-shadow(0 3px 3px #233f350d);
+}
+
+.letter :global(.letter-envelope:focus-visible),
+.letter :global(.letter-sheet:focus-visible) {
+  outline: 2px solid var(--rust, #b65132);
+  outline-offset: 5px;
+}
+
+.letter :global(.envelope-back) {
+  border-color: #cdc5b5;
+  border-radius: 3px;
+  background: #d9d1c1;
+}
+
+.letter :global(.envelope-front) {
+  border-radius: 3px;
+}
+
+.letter :global(.envelope-front::before) {
+  background: #f1ebdf;
+}
+
+.letter :global(.envelope-flap) {
+  background: #f6f1e7;
+}
+
+.letter :global(.envelope-address small) {
+  letter-spacing: 0.06em;
+}
+
+.letter :global(.letter-sheet) {
+  border-color: #d4cdbf;
+  border-radius: 3px;
+  background: var(--letter-paper);
+  box-shadow: 2px 3px 0 #e5dfd3;
+  scrollbar-color: #89938a transparent;
+}
+
+.letter :global(.letter-sheet::before) {
+  content: none;
+}
+
+.letter :global(.letter-sheet .personal-message) {
+  color: var(--ink, #233f35);
+}
+
+.letter :global(.letter-signature strong) {
+  font-family: "Fraunces", Georgia, serif;
+}
+
+.letter :global(.letter-melody) {
+  border-top: 1px solid #d4cdbf;
+  padding-top: 12px;
+}
+
+.letter :global(.melody-symbols i:nth-child(n)) {
+  border: 1px solid #d4cdbf;
+  border-radius: 3px;
+  background: var(--paper, #f8f5eb);
+  color: var(--ink, #233f35);
+}
+
+.letter :global(.letter-actions button),
+.letter :global(.letter-melody button) {
+  color: var(--ink, #233f35);
+}
+
+.letter :global(.letter-keepsake) {
+  border-top: 1px solid #d4cdbf;
+  color: var(--ink, #233f35);
+}
+
+.letter :global(.letter-keepsake img) {
+  border: 1px solid #d4cdbf;
+  box-shadow: none;
+}

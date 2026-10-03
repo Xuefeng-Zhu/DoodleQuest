@@ -1,11 +1,12 @@
 "use client";
 import { useEffect, useReducer, useRef, useState } from "react";
-import { Heart, Mail, Music2, RotateCcw, Square, Star } from "lucide-react";
+import { Mail, Music2, RotateCcw, Square } from "lucide-react";
 import type { Gift } from "@/domain/config";
 import { permittedDrawing } from "@/domain/reveal";
 import { advanceLetter, letter, LETTER_OPEN_MS } from "@/domain/letter";
 import DedicationTag from "./DedicationTag";
 import type { AudioState } from "./game/MelodyPlayer";
+import styles from "./GiftLetter.module.css";
 
 export default function GiftLetter({
   gift,
@@ -71,7 +72,7 @@ export default function GiftLetter({
 
   return (
     <section
-      className="ending letter-ending"
+      className={`ending letter-ending ${styles.letter}`}
       data-letter-phase={phase}
       aria-label="Your letter"
       inert={paused}
@@ -82,14 +83,12 @@ export default function GiftLetter({
       {phase !== "reading" ? (
         <div className="letter-delivery">
           <div className="letter-intro">
-            <span className="eyebrow">
-              ONE LITTLE STAR. A SPECIAL DELIVERY.
-            </span>
+            <span className="eyebrow">YOUR LETTER</span>
             <h1>
               Something just
-              <br /> <em>for you.</em>
+              <br /> for you.
             </h1>
-            <p>{gift.config.heroName} brought a star. There’s a letter, too.</p>
+            <p>Delivered by {gift.config.heroName}.</p>
           </div>
           <button
             ref={openButton}
@@ -104,21 +103,12 @@ export default function GiftLetter({
             }}
           >
             <span className="envelope-back" aria-hidden="true" />
-            <span className="envelope-peek" aria-hidden="true">
-              <Heart size={23} />
-            </span>
+            <span className="envelope-peek" aria-hidden="true" />
             <span className="envelope-flap" aria-hidden="true" />
             <span className="envelope-front" aria-hidden="true" />
-            <span className="envelope-stamp" aria-hidden="true">
-              <Star size={23} />
-              <small>WITH LOVE</small>
-            </span>
             <span className="envelope-address" aria-hidden="true">
-              <small>To someone wonderful</small>
+              <small>To</small>
               <strong>{gift.config.recipient}</strong>
-            </span>
-            <span className="envelope-seal" aria-hidden="true">
-              <Heart size={22} />
             </span>
             <span className="envelope-invitation" aria-hidden="true">
               {phase === "opening"
@@ -128,7 +118,7 @@ export default function GiftLetter({
             </span>
           </button>
           <p className="letter-sender">
-            From <strong>{gift.config.creator}</strong>, with love.
+            From <strong>{gift.config.creator}</strong>
           </p>
         </div>
       ) : (
@@ -138,30 +128,17 @@ export default function GiftLetter({
           aria-labelledby="letter-heading"
           tabIndex={0}
         >
-          <div className="letter-stationery" aria-hidden="true">
-            <span>
-              A LITTLE WORLD,
-              <br />
-              ALL THIS LOVE.
-            </span>
-            <span className="letter-postmark">
-              <Star size={19} />
-              DOODLEQUEST POST
-            </span>
-          </div>
           <h1 ref={heading} id="letter-heading" tabIndex={-1}>
             For {gift.config.recipient}
             <span aria-hidden="true">,</span>
           </h1>
           <p className="personal-message">{gift.config.message}</p>
           <p className="letter-signature">
-            <span>With love,</span>
+            <span>From</span>
             <strong>{gift.config.creator}</strong>
-            <Heart size={20} aria-hidden="true" />
           </p>
           <div className="letter-postscript">
-            <Star size={12} aria-hidden="true" />
-            Carried by {gift.config.heroName}. Made just for you.
+            Delivered by {gift.config.heroName}.
           </div>
           <div className="letter-melody">
             <span className="melody-symbols" aria-hidden="true">
@@ -170,7 +147,7 @@ export default function GiftLetter({
               <i>★</i>
             </span>
             <div>
-              <p>Three little bells. Home again.</p>
+              <p>Bell melody</p>
               <button
                 disabled={paused}
                 onClick={playing ? melody.onStop : melody.onPlay}
@@ -212,9 +189,7 @@ export default function GiftLetter({
                       alt={`Original drawing for ${gift.config.heroName}`}
                       onError={() => setDrawingFailed(true)}
                     />
-                    <figcaption>
-                      A little piece of where this world began.
-                    </figcaption>
+                    <figcaption>Original drawing</figcaption>
                   </figure>
                 ))}
             </details>

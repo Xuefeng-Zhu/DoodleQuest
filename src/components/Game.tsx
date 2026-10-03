@@ -30,6 +30,7 @@ import WonderControls from "./WonderControls";
 import { useWonderClock } from "./game/useWonderClock";
 import { useMelody } from "./game/useMelody";
 import { soundForAction } from "@/domain/melody";
+import styles from "./Game.module.css";
 export default function Game({
   gift,
   preview = false,
@@ -103,7 +104,7 @@ export default function Game({
   };
   return (
     <main
-      className={`game-page ${game.stage === "complete" ? "completed" : ""} ${revealing ? "is-revealing" : ""} ${opening.phase === "entering" ? "is-entering" : ""}`}
+      className={`${styles.game} game-page ${game.stage === "complete" ? "completed" : ""} ${revealing ? "is-revealing" : ""} ${opening.phase === "entering" ? "is-entering" : ""}`}
       data-reveal-phase={opening.phase}
       data-reduced-motion={reduced}
       data-paused={game.paused}
@@ -145,16 +146,16 @@ export default function Game({
       )}
       {game.stage === "intro" && opening.phase === "sealed" && (
         <section className="gift-opening">
-          <span className="eyebrow">A SMALL ADVENTURE, WITH A BIG HEART</span>
+          <span className="eyebrow">A gift from {gift.config.creator}</span>
           <h1>
-            A little world,
+            A world for
             <br />
-            made for <em>{gift.config.recipient}.</em>
+            {gift.config.recipient}.
           </h1>
           <p>
-            Meet {gift.config.heroName}. Find a star.
+            Meet {gift.config.heroName} and follow the star.
             <br />
-            Discover something just for you.
+            Your letter is waiting at the end.
           </p>
           <DedicationTag text={gift.config.dedication} variant="opening" />
           <button
@@ -169,9 +170,6 @@ export default function Game({
           >
             Open my gift <ArrowRight size={18} />
           </button>
-          <span className="opening-signature">
-            with love, {gift.config.creator}
-          </span>
           <button
             className="opening-sound"
             role="switch"
@@ -185,9 +183,7 @@ export default function Game({
             ) : (
               <Volume2 size={15} aria-hidden="true" />
             )}
-            {muted
-              ? "Sound off · a quiet little world"
-              : "Sound on · listen for the bells"}
+            {muted ? "Sound off" : "Sound on"}
           </button>
         </section>
       )}
@@ -260,6 +256,7 @@ export default function Game({
             {(["bells", "garden", "mailbox"] as Destination[]).map((to, i) => (
               <button
                 key={to}
+                aria-current={game.location === to ? "step" : undefined}
                 disabled={
                   !allowed(game, to) ||
                   !!game.target ||
@@ -274,9 +271,7 @@ export default function Game({
               </button>
             ))}
           </nav>
-          <p className="controls-note">
-            Tap a destination or use Tab + Enter. There’s no hurry.
-          </p>
+          <p className="controls-note">Choose a stop. Keyboard: Tab + Enter.</p>
         </div>
       )}
       {game.stage !== "intro" && game.stage !== "complete" && (
@@ -330,7 +325,7 @@ export default function Game({
             aria-modal="true"
             aria-label="Adventure settings"
           >
-            <h2>A little breather.</h2>
+            <h2>Adventure settings</h2>
             <label className="check-row">
               <input
                 type="checkbox"

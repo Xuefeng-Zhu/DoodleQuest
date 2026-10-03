@@ -208,7 +208,7 @@ test("persisted draft, approval, preview, immutable sharing, ownership, revoke, 
     "Our Saturday adventures",
   );
   await expect(
-    gift.getByRole("heading", { name: "A little world, made for Jamie." }),
+    gift.getByRole("heading", { name: "A world for Jamie." }),
   ).toBeVisible();
   expect(
     (

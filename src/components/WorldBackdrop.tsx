@@ -37,22 +37,7 @@ export default function WorldBackdrop({
         </defs>
         <path fill={`url(#${sky})`} d="M0 0h1600v1000H0z" />
         <g className={styles.sun}>
-          <circle
-            cx="1270"
-            cy="195"
-            r="148"
-            fill="var(--world-sun)"
-            opacity=".13"
-          />
-          <circle
-            cx="1270"
-            cy="195"
-            r="116"
-            fill="var(--world-sun)"
-            opacity=".2"
-          />
           <circle cx="1270" cy="195" r="77" fill="var(--world-sun)" />
-          <circle cx="1250" cy="175" r="50" fill="#fffbee" opacity=".25" />
         </g>
         <g fill="var(--world-cloud)" opacity=".8">
           <path d="M-80 222c30-37 72-26 87-10 5-52 70-70 106-33 34-25 81-10 91 28 39-15 76 3 85 27 28-8 55 8 65 26H-80z" />

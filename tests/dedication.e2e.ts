@@ -188,7 +188,7 @@ test("legacy gifts omit the detail entirely and an empty field can be saved and 
   await input.fill("Our Saturday adventures");
   await expect(page.locator('[data-dedication="preview"] p')).toHaveCSS(
     "color",
-    "rgb(87, 78, 52)",
+    "rgb(35, 63, 53)",
   );
   await expect(page.locator(".hero-preview canvas")).toBeVisible();
   // Let the loaded canvas and its ResizeObserver settle for real visual evidence.

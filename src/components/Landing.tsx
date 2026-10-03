@@ -1,120 +1,115 @@
 "use client";
 import Link from "next/link";
-import {
-  ArrowRight,
-  Play,
-  Heart,
-  PenLine,
-  Sparkles,
-  Gift as GiftIcon,
-} from "lucide-react";
+import { ArrowRight, MoveUpRight } from "lucide-react";
 import Scene from "./Scene";
 import WorldBackdrop from "./WorldBackdrop";
 import { example } from "@/domain/config";
 import Header from "./Header";
+import styles from "./Landing.module.css";
+
+const steps = [
+  [
+    "01",
+    "Start with a drawing",
+    "A photo of a character from a sketchbook is enough.",
+  ],
+  [
+    "02",
+    "Meet the character",
+    "See it in 3D. Adjust it, then approve the version you like.",
+  ],
+  [
+    "03",
+    "Make it a gift",
+    "Add a personal note and share the adventure with a link.",
+  ],
+];
 export default function Landing() {
   return (
     <>
       <Header />
-      <main>
-        <section className="landing-hero">
-          <div className="hero-copy">
-            <p className="eyebrow">
-              <span /> SMALL DRAWINGS. BIG LITTLE WORLDS.
+      <main className={styles.page}>
+        <section className={styles.hero} aria-labelledby="landing-title">
+          <div className={styles.copy}>
+            <p className={styles.kicker}>
+              A drawing. A character. An adventure.
             </p>
-            <h1>
-              Your drawing
+            <h1 id="landing-title">
+              A world for
               <br />
-              deserves
-              <br />
-              <em>a world.</em>
-              <span className="doodle-spark">✧</span>
+              your drawing.
             </h1>
-            <p className="hero-description">
-              Turn a one-of-a-kind drawing into a tiny playable gift. A little
-              adventure. A personal message. A whole lot of heart.
+            <p className={styles.description}>
+              Turn a drawing into a 3D character, then send it on a short
+              adventure with a note from you.
             </p>
-            <div className="hero-actions">
+            <div className={styles.actions}>
               <Link className="button primary" href="/create">
-                Create a gift <ArrowRight size={18} />
+                Create a gift <ArrowRight size={17} />
               </Link>
-              <Link className="button text-button" href="/example">
-                <Play size={16} fill="currentColor" /> Play an example
+              <Link className={styles.exampleLink} href="/example">
+                Play an example <MoveUpRight size={16} />
               </Link>
             </div>
-            <p className="fine-print">
-              <Heart size={13} /> Made by you. Meant for someone.
+            <p className={styles.detail}>
+              One drawing. Three stops. A letter at the end.
             </p>
           </div>
-          <div className="hero-art">
-            <WorldBackdrop palette={example.config.palette} preview />
-            <div className="orbit orbit-one" />
-            <div className="orbit orbit-two" />
-            <div className="scene-window">
-              <Scene gift={example} mini />
+          <figure className={styles.world}>
+            <div className={styles.worldHeading}>
+              <span>The example world</span>
+              <span>Pip / A Star for You</span>
             </div>
-            <div className="drawing-note">
-              <span className="tape" />
-              <img
-                src="/sample-drawing.png"
-                alt="Original mint bunny drawing, Pip, with a yellow scarf"
-              />
-              <span>It started with a doodle.</span>
+            <div className={styles.stage}>
+              <WorldBackdrop palette={example.config.palette} preview />
+              <div className={styles.canvas}>
+                <Scene gift={example} mini />
+              </div>
             </div>
-            <div className="scene-caption">
-              <span className="tiny-star">✦</span> Meet Pip’s little world{" "}
-              <span className="muted">drag to peek around</span>
-            </div>
-            <span className="handwritten art-note">
-              imagination lives here ↙
-            </span>
-          </div>
-        </section>
-        <section className="journey-strip" aria-label="How it works">
-          <div className="strip-intro">
-            From the fridge door
-            <br />
-            <em>to a world of their own.</em>
-          </div>
-          {[
-            [
-              PenLine,
-              "01",
-              "A drawing with character",
-              "Upload a doodle. Keep its personality.",
-            ],
-            [
-              Sparkles,
-              "02",
-              "A little leap into 3D",
-              "Meet a new interpretation of your hero.",
-            ],
-            [
-              GiftIcon,
-              "03",
-              "An adventure to give",
-              "Add a note. Share a moment.",
-            ],
-          ].map(([Icon, n, title, desc]) => {
-            const I = Icon as typeof PenLine;
-            return (
-              <div className="journey-item" key={String(n)}>
-                <span className="journey-icon">
-                  <I size={21} />
-                </span>
+            <figcaption className={styles.caption}>
+              <div className={styles.drawing}>
+                <img
+                  src="/sample-drawing.png"
+                  alt="The original drawing of Pip, a mint bunny with a yellow scarf"
+                />
                 <div>
-                  <span className="step-number">{String(n)}</span>
-                  <h2>{String(title)}</h2>
-                  <p>{String(desc)}</p>
+                  <span>Started here</span>
+                  <strong>Pip, on paper.</strong>
                 </div>
               </div>
-            );
-          })}
+              <div className={styles.worldNote}>
+                <span>Drag the world to look around</span>
+                <span>Handcrafted example · not AI-generated</span>
+              </div>
+            </figcaption>
+          </figure>
         </section>
-        <footer className="site-footer">
-          <span>A little world. A lasting feeling.</span>
-          <span>Adult-created · No recipient account · Unlisted gifts</span>
-          <span>Example hero is procedural, not Tripo-generated.</span>
+        <section className={styles.process} aria-labelledby="process-title">
+          <div className={styles.processIntro}>
+            <span className={styles.kicker}>From paper to play</span>
+            <h2 id="process-title">
+              Keep the character. <br />
+              Add an adventure.
+            </h2>
+          </div>
+          <ol>
+            {steps.map(([number, title, description]) => (
+              <li key={number}>
+                <span className={styles.stepNumber}>{number}</span>
+                <div>
+                  <h3>{title}</h3>
+                  <p>{description}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+        <footer className={styles.footer}>
+          <span>A gift they can play.</span>
+          <span>Created by adults. Shared by link. No recipient account.</span>
+          <Link href="/create">
+            Make yours <ArrowRight size={14} />
+          </Link>
         </footer>
       </main>
     </>

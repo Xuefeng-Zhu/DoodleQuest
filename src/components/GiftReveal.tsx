@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Heart, Sparkles } from "lucide-react";
+import { ArrowRight, ImageOff } from "lucide-react";
 import type { Gift } from "@/domain/config";
 import { permittedDrawing, type RevealPhase } from "@/domain/reveal";
 
@@ -33,9 +33,7 @@ export default function GiftReveal({
       data-phase={phase}
     >
       <div className="reveal-heading" aria-hidden={entering}>
-        <span className="eyebrow">
-          A LITTLE IMAGINATION, A WHOLE NEW ADVENTURE
-        </span>
+        <span className="eyebrow">From drawing to character</span>
         <h1 ref={heading} tabIndex={-1}>
           {drawing ? (
             <>
@@ -49,17 +47,16 @@ export default function GiftReveal({
         </h1>
         <p>
           {drawing
-            ? "And now, it has somewhere to go."
+            ? "The same character, ready to explore."
             : `A little hero, made for ${gift.config.recipient}.`}
         </p>
       </div>
       <div className="reveal-tableau" aria-hidden={entering}>
         {drawing && (
           <figure className="reveal-drawing">
-            <span className="paper-tape" aria-hidden="true" />
             {imageFailed ? (
               <div className="drawing-unavailable" role="status">
-                <Heart size={28} />
+                <ImageOff size={28} />
                 The drawing couldn’t open. Your adventure is still here.
               </div>
             ) : (
@@ -69,19 +66,16 @@ export default function GiftReveal({
                 onError={() => setImageFailed(true)}
               />
             )}
-            <figcaption>The drawing that started it all.</figcaption>
+            <figcaption>The original drawing</figcaption>
           </figure>
         )}
         {drawing && (
           <span className="reveal-connection" aria-hidden="true">
-            a little leap <span>⤳</span>
+            <ArrowRight size={25} />
           </span>
         )}
         <div className="reveal-hero-caption" aria-live="polite">
-          <span className="reveal-hero-name">
-            Meet {gift.config.heroName}{" "}
-            <Sparkles size={16} aria-hidden="true" />
-          </span>
+          <span className="reveal-hero-name">Meet {gift.config.heroName}</span>
           <span>
             {gift.source === "procedural"
               ? "Our handmade, procedural example"

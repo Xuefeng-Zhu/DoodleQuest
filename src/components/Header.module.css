@@ -1,0 +1,65 @@
+.header {
+  max-width: 1440px;
+  height: 88px;
+  margin: 0 auto;
+  padding: 0 56px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.wordmark {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 30px;
+  font-weight: 500;
+  letter-spacing: -1.2px;
+}
+.wordmark span {
+  color: var(--rust);
+}
+.header nav {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  font-size: 12px;
+}
+.header nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+.header nav a:hover {
+  color: var(--rust);
+}
+.create {
+  gap: 8px;
+  border-bottom: 1px solid var(--line);
+}
+@media (max-width: 1100px) {
+  .header {
+    padding: 0 32px;
+  }
+}
+@media (max-width: 760px) {
+  .header {
+    height: 76px;
+    padding: 0 22px;
+  }
+  .wordmark {
+    font-size: 27px;
+  }
+  .header nav {
+    gap: 16px;
+    font-size: 11px;
+  }
+  .header nav a:first-child {
+    display: none;
+  }
+}
+@media (max-width: 350px) {
+  .wordmark {
+    font-size: 23px;
+  }
+  .header {
+    gap: 14px;
+  }
+}

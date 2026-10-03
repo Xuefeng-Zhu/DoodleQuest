@@ -10,9 +10,10 @@ import {
   Check,
   Copy,
   ExternalLink,
-  Sparkles,
+  Box,
 } from "lucide-react";
 import Header from "./Header";
+import styles from "./Creator.module.css";
 import DedicationTag from "./DedicationTag";
 import HeroMotionControls, {
   motionWorking,
@@ -577,9 +578,8 @@ export default function Creator() {
           onChange={(e) => change("dedication", e.target.value)}
         />
         <p className="note" id="dedication-help">
-          A shared saying, a tiny memory, an inside joke. It travels from the
-          opening to the star, then into their letter. Visible from the start;
-          keep personal information out. Leave blank to skip.
+          A saying or memory that appears in the opening, on the star, and in
+          the letter. Keep personal information out. Leave blank to skip.
         </p>
         <span className="note" id="dedication-count">
           {config.dedication.length}/{DEDICATION_LIMIT}
@@ -593,24 +593,21 @@ export default function Creator() {
           maxLength={1200}
           onChange={(e) => change("message", e.target.value)}
         />
-        <span className="note">
-          {config.message.length}/1200 · A few heartfelt words are plenty.
-        </span>
+        <span className="note">{config.message.length}/1200 characters</span>
       </label>
     </div>
   );
   return (
     <>
       <Header />
-      <main className="creator-shell">
+      <main className={`creator-shell ${styles.studio}`}>
         <div className="creator-heading">
           <div>
-            <p className="eyebrow">THE LITTLE GIFT WORKSHOP</p>
-            <h1>Let’s make their day.</h1>
+            <p className="eyebrow">DRAWING STUDIO</p>
+            <h1>Make a drawing into a gift.</h1>
             <p>
-              A character only you could imagine. A note only you could write.
-              <br />
-              Put a little of yourself into their world.
+              Review your character in 3D, write your note, and play the
+              adventure before sharing it.
             </p>
           </div>
           <span className="mode-label">
@@ -632,6 +629,7 @@ export default function Creator() {
             <button
               key={s}
               className={step === i ? "active" : ""}
+              aria-current={step === i ? "step" : undefined}
               onClick={() => setStep(i)}
               disabled={
                 (i > 0 && !project?.inputAsset) || (i > 2 && !project?.approved)
@@ -672,9 +670,9 @@ export default function Creator() {
                   <div className="drop-icon">
                     <Upload size={26} />
                   </div>
-                  <h3>A little doodle goes a long way.</h3>
+                  <h3>Choose your drawing</h3>
                   <p>
-                    Drop your drawing here, or choose a photo.
+                    Drop a file here, or click to browse.
                     <br />
                     JPEG or PNG · up to 10 MB
                   </p>
@@ -739,21 +737,16 @@ export default function Creator() {
                 </div>
               </div>
             </section>
-            <section className="paper-panel">
-              <p className="eyebrow">A GOOD PLACE TO BEGIN</p>
-              <h2>
-                One character.
-                <br />
-                Endless personality.
-              </h2>
+            <section className={`paper-panel ${styles.drawingGuide}`}>
+              <p className="eyebrow">BEFORE YOU UPLOAD</p>
+              <h2>A clear drawing works best.</h2>
               <p>
-                One character, clearly visible, works best. A plain background
-                helps. Scribbly ears and wonderfully wonky smiles are welcome.
+                Choose one character on a plain background. Keep the whole
+                character in the frame.
               </p>
               <p>
-                This is a workshop for adult creators. Please don’t upload
-                names, school details, faces, or other personal information
-                about a child.
+                For adult creators. Please don’t upload names, school details,
+                faces, or other personal information about a child.
               </p>
               <p className="note">
                 Your drawing stays in your owner-only draft until you choose to
@@ -762,7 +755,7 @@ export default function Creator() {
               </p>
               {drafts.length > 0 && (
                 <div className="draft-list">
-                  <h3>Pick up a little work in progress</h3>
+                  <h3>Your saved drafts</h3>
                   {drafts.map((p) => (
                     <button
                       key={p.id}
@@ -797,14 +790,12 @@ export default function Creator() {
                   <img src={project.drawingUrl} alt="Saved original drawing" />
                 )}
               </div>
-              <p className="asset-label">
-                Your drawing stays part of the story.
-              </p>
+              <p className="asset-label">Saved original drawing</p>
               <div className="status-card">
                 <strong>
                   {project?.job
                     ? states[project.job.status] || project.job.status
-                    : "Ready for its little leap into 3D"}
+                    : "Ready to create a 3D interpretation"}
                 </strong>
                 {project?.job?.progress != null && (
                   <progress
@@ -876,7 +867,7 @@ export default function Creator() {
                     }
                     onClick={() => run(() => generate(!!project?.job))}
                   >
-                    <Sparkles size={17} />
+                    <Box size={17} />
                     {project?.job
                       ? "Start another paid attempt"
                       : "Create 3D interpretation"}
@@ -892,11 +883,11 @@ export default function Creator() {
               )}
             </section>
             <section className="paper-panel">
-              <p className="eyebrow">WHILE A LITTLE MAGIC HAPPENS</p>
-              <h2>Who is this world for?</h2>
+              <p className="eyebrow">GIFT DETAILS</p>
+              <h2>Add your note while you wait.</h2>
               <p>
-                You don’t have to wait here. Write your note now; the worker
-                will keep the generation moving.
+                Generation continues while you write. Save your changes to
+                return to them later.
               </p>
               {fields}
               <button
@@ -926,9 +917,7 @@ export default function Creator() {
                     <img src={project.drawingUrl} alt="Original drawing" />
                   )}
                 </div>
-                <p className="asset-label">
-                  THE ORIGINAL · always part of its story
-                </p>
+                <p className="asset-label">ORIGINAL DRAWING</p>
               </section>
               <section>
                 <div className="hero-preview">
@@ -1104,10 +1093,8 @@ export default function Creator() {
               </div>
             </section>
             <section>
-              <h2>The same world, a different glow.</h2>
-              <p className="note">
-                Three palettes. One lovingly built little island.
-              </p>
+              <h2>Choose the world’s palette.</h2>
+              <p className="note">Preview each palette with your character.</p>
               <div className="palette-row">
                 {Object.entries(palettes).map(([name, c]) => (
                   <button
@@ -1170,7 +1157,7 @@ export default function Creator() {
               </div>
             </section>
             <section className="paper-panel">
-              <h2>A world, ready to give.</h2>
+              <h2>Share your finished gift.</h2>
               <p>
                 Publish an unlisted, read-only gift. Anyone with the link can
                 open it. No recipient account needed.
@@ -1191,7 +1178,7 @@ export default function Creator() {
                 Wrap this gift <ArrowRight size={17} />
               </button>
               <p className="note wrap-invitation">
-                A final look. A ribbon. Ready for someone special.
+                Review the note and wrapping before publishing.
               </p>
               {project?.shares.map((s) => (
                 <div key={s.id} style={{ marginTop: 20 }}>

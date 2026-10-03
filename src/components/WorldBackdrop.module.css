@@ -1,7 +1,7 @@
 .backdrop {
-  --world-sky: #d9e9e3;
-  --world-horizon: #f7f2df;
-  --world-paper: #f8f5eb;
+  --world-sky: #e3ebe6;
+  --world-horizon: #f5f2e6;
+  --world-paper: #f6f4ed;
   --world-sun: #f6df9b;
   --world-cloud: #fffdf3;
   --world-hill-far: #d4e0d1;
@@ -56,9 +56,7 @@
 }
 
 .preview {
-  inset: 0 -12px 4px;
-  border-radius: 46% 44% 43% 48%;
-  mask-image: radial-gradient(ellipse, #000 48%, transparent 73%);
+  inset: 0;
 }
 
 @media (max-width: 760px) {
