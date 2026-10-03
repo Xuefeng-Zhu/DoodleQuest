@@ -5,11 +5,80 @@ import { Html } from "@react-three/drei";
 import DedicationTag from "../DedicationTag";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
-import { Box3, Vector3, Vector2, Shape, Group, Mesh, Texture } from "three";
+import { Vector2, Shape, Group, Mesh, SkinnedMesh, Texture } from "three";
 import type { Gift } from "@/domain/config";
 import { useGame, movementProgress } from "./store";
 import { waypoints } from "@/domain/quest";
 import { heroPosition } from "@/domain/wonders";
+import {
+  advanceHeroMotion,
+  heroMotionDelta,
+  initialHeroMotion,
+  observeHeroQuest,
+  pipPose,
+  requestHeroMotion,
+  type HeroMotion,
+  type HeroMotionState,
+} from "@/domain/hero-motion";
+import { HeroAnimation } from "./HeroAnimation";
+
+type MotionRuntime = {
+  state: HeroMotionState;
+  delta: number;
+  reduced: boolean;
+  duration: number;
+};
+const diagnosticSamples = new WeakMap<
+  HTMLCanvasElement,
+  { at: number; key: string }
+>();
+function diagnostics(
+  canvas: HTMLCanvasElement,
+  runtime: MotionRuntime,
+  kind: string,
+  pose: () => string,
+  animation?: HeroAnimation,
+) {
+  const at = performance.now();
+  const key = `${runtime.state.revision}:${runtime.reduced}:${kind}:${animation?.clipName ?? ""}`;
+  const previous = diagnosticSamples.get(canvas);
+  if (previous?.key === key && at - previous.at < 100) return;
+  diagnosticSamples.set(canvas, { at, key });
+  const values = {
+    heroMotion: runtime.state.motion,
+    heroAnimationTime: runtime.state.time.toFixed(4),
+    heroCheers: String(runtime.state.cheers),
+    heroKind: kind,
+    heroSkinnedMeshes: String(animation?.skinnedMeshes.length ?? 0),
+    heroClip: animation?.clipName ?? "",
+    heroPose: pose(),
+  };
+  for (const [name, value] of Object.entries(values))
+    if (canvas.dataset[name] !== value) canvas.dataset[name] = value;
+}
+function fallbackPose(
+  group: Group,
+  runtime: MotionRuntime,
+  movement: Gift["config"]["movement"],
+) {
+  const { state, reduced } = runtime;
+  const t = state.time;
+  group.position.y = reduced
+    ? 0
+    : state.motion === "celebrate"
+      ? Math.sin(Math.min(1, state.phaseTime / runtime.duration) * Math.PI) *
+        0.2
+      : movement === "float"
+        ? 0.09 + Math.sin(t * 2) * 0.09
+        : movement === "bounce"
+          ? Math.abs(Math.sin(t * (state.motion === "walk" ? 8 : 2))) * 0.1
+          : 0;
+  group.rotation.z = reduced
+    ? 0
+    : movement === "sway"
+      ? Math.sin(t * 2) * 0.07
+      : 0;
+}
 export function Orb({
   position = [0, 0, 0],
   scale = [1, 1, 1],
@@ -28,54 +97,85 @@ export function Orb({
     </mesh>
   );
 }
-export function Pip() {
+export function Pip({ runtime }: { runtime?: MotionRuntime }) {
+  const body = useRef<Group>(null!),
+    head = useRef<Group>(null!),
+    leftArm = useRef<Group>(null!),
+    rightArm = useRef<Group>(null!),
+    leftFoot = useRef<Group>(null!),
+    rightFoot = useRef<Group>(null!);
+  useFrame(({ gl }) => {
+    if (!runtime) return;
+    const pose = pipPose(runtime.state, runtime.reduced);
+    body.current.position.y = pose.height;
+    head.current.rotation.z = pose.head;
+    leftFoot.current.rotation.x = pose.foot;
+    rightFoot.current.rotation.x = -pose.foot;
+    leftArm.current.rotation.set(-pose.arm, 0, -pose.armLift);
+    rightArm.current.rotation.set(pose.arm, 0, pose.armLift);
+    diagnostics(gl.domElement, runtime, "procedural", () =>
+      Object.values(pose)
+        .map((n) => n.toFixed(4))
+        .join(","),
+    );
+  }, -1);
   return (
-    <group>
+    <group ref={body} name="pip-procedural-hero">
       <Orb position={[0, 0.65, 0]} scale={[0.43, 0.52, 0.36]} shadow />
-      <Orb position={[0, 1.17, 0.01]} scale={[0.52, 0.44, 0.43]} shadow />
-      <group position={[-0.31, 1.62, -0.02]} rotation={[0, 0, -0.15]}>
-        <Orb scale={[0.15, 0.38, 0.14]} />
+      <group ref={head} position={[0, 1.17, 0.01]}>
+        <Orb scale={[0.52, 0.44, 0.43]} shadow />
+        <group position={[-0.31, 0.45, -0.03]} rotation={[0, 0, -0.15]}>
+          <Orb scale={[0.15, 0.38, 0.14]} />
+        </group>
+        <group position={[0.32, 0.44, -0.03]} rotation={[0, 0, 0.22]}>
+          <Orb scale={[0.15, 0.31, 0.14]} />
+        </group>
+        <Orb
+          position={[-0.2, 0.06, 0.398]}
+          scale={[0.038, 0.062, 0.025]}
+          color="#304b42"
+        />
+        <Orb
+          position={[0.2, 0.06, 0.398]}
+          scale={[0.038, 0.062, 0.025]}
+          color="#304b42"
+        />
+        <Orb
+          position={[0, -0.05, 0.428]}
+          scale={[0.047, 0.025, 0.025]}
+          color="#304b42"
+        />
+        <Orb
+          position={[-0.32, -0.05, 0.34]}
+          scale={[0.065, 0.032, 0.025]}
+          color="#f1a6a0"
+        />
+        <Orb
+          position={[0.32, -0.05, 0.34]}
+          scale={[0.065, 0.032, 0.025]}
+          color="#f1a6a0"
+        />
       </group>
-      <group position={[0.32, 1.61, -0.02]} rotation={[0, 0, 0.22]}>
-        <Orb scale={[0.15, 0.31, 0.14]} />
+      <group ref={leftFoot} position={[-0.2, 0.3, 0]}>
+        <Orb
+          position={[0, -0.17, 0.12]}
+          scale={[0.2, 0.13, 0.25]}
+          color="#719f89"
+        />
       </group>
-      <Orb
-        position={[-0.2, 0.13, 0.12]}
-        scale={[0.2, 0.13, 0.25]}
-        color="#719f89"
-      />
-      <Orb
-        position={[0.2, 0.13, 0.12]}
-        scale={[0.2, 0.13, 0.25]}
-        color="#719f89"
-      />
-      <Orb position={[-0.46, 0.66, 0]} scale={[0.13, 0.27, 0.15]} />
-      <Orb position={[0.46, 0.66, 0]} scale={[0.13, 0.27, 0.15]} />
-      <Orb
-        position={[-0.2, 1.23, 0.408]}
-        scale={[0.038, 0.062, 0.025]}
-        color="#304b42"
-      />
-      <Orb
-        position={[0.2, 1.23, 0.408]}
-        scale={[0.038, 0.062, 0.025]}
-        color="#304b42"
-      />
-      <Orb
-        position={[0, 1.12, 0.438]}
-        scale={[0.047, 0.025, 0.025]}
-        color="#304b42"
-      />
-      <Orb
-        position={[-0.32, 1.12, 0.35]}
-        scale={[0.065, 0.032, 0.025]}
-        color="#f1a6a0"
-      />
-      <Orb
-        position={[0.32, 1.12, 0.35]}
-        scale={[0.065, 0.032, 0.025]}
-        color="#f1a6a0"
-      />
+      <group ref={rightFoot} position={[0.2, 0.3, 0]}>
+        <Orb
+          position={[0, -0.17, 0.12]}
+          scale={[0.2, 0.13, 0.25]}
+          color="#719f89"
+        />
+      </group>
+      <group ref={leftArm} position={[-0.46, 0.85, 0]}>
+        <Orb position={[0, -0.19, 0]} scale={[0.13, 0.27, 0.15]} />
+      </group>
+      <group ref={rightArm} position={[0.46, 0.85, 0]}>
+        <Orb position={[0, -0.19, 0]} scale={[0.13, 0.27, 0.15]} />
+      </group>
       <mesh position={[0, 0.9, 0]} rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[0.35, 0.075, 8, 30]} />
         <meshStandardMaterial color="#efb95e" />
@@ -92,28 +192,48 @@ function Loaded({
   url,
   forward,
   onReady,
+  runtime,
+  movement,
 }: {
   url: string;
   forward: number;
   onReady?: () => void;
+  runtime: MotionRuntime;
+  movement: Gift["config"]["movement"];
 }) {
+  const fallback = useRef<Group>(null!);
   const gltf = useLoader(GLTFLoader, url, (loader) =>
     loader.setMeshoptDecoder(MeshoptDecoder),
   );
-  const normalized = useMemo(() => {
-    const root = gltf.scene.clone(true);
-    root.updateMatrixWorld(true);
-    const box = new Box3().setFromObject(root),
-      size = box.getSize(new Vector3()),
-      center = box.getCenter(new Vector3());
-    const scale = 1.8 / Math.max(size.x, size.y, size.z, 0.001);
-    root.position.set(-center.x * scale, -box.min.y * scale, -center.z * scale);
-    root.scale.setScalar(scale);
-    return root;
-  }, [gltf]);
+  const animation = useMemo(
+    () => new HeroAnimation(gltf.scene, gltf.animations),
+    [gltf],
+  );
   useEffect(() => {
+    runtime.duration = animation.celebrationDuration;
     onReady?.();
-  }, [onReady]);
+  }, [animation, onReady, runtime]);
+  useEffect(() => () => animation.dispose(), [animation]);
+  useFrame(({ gl }) => {
+    const animated = animation.update(
+      runtime.state,
+      runtime.delta,
+      runtime.reduced,
+    );
+    if (animated) {
+      fallback.current.position.y = 0;
+      fallback.current.rotation.z = 0;
+    } else fallbackPose(fallback.current, runtime, movement);
+    diagnostics(
+      gl.domElement,
+      runtime,
+      animated ? "clips" : "fallback",
+      () =>
+        animation.pose() ||
+        `${fallback.current.position.y.toFixed(4)},${fallback.current.rotation.z.toFixed(4)}`,
+      animation,
+    );
+  }, -1);
   useEffect(() => {
     modelUsers.set(url, (modelUsers.get(url) || 0) + 1);
     return () => {
@@ -121,6 +241,7 @@ function Loaded({
       queueMicrotask(() => {
         if (modelUsers.get(url) !== 0) return;
         gltf.scene.traverse((node) => {
+          if (node instanceof SkinnedMesh) node.skeleton.dispose();
           if (node instanceof Mesh) {
             node.geometry.dispose();
             for (const material of Array.isArray(node.material)
@@ -138,30 +259,93 @@ function Loaded({
     };
   }, [gltf, url]);
   return (
-    <group rotation={[0, (forward * Math.PI) / 180, 0]}>
-      <primitive object={normalized} />
+    <group ref={fallback}>
+      <group rotation={[0, (forward * Math.PI) / 180, 0]}>
+        <primitive object={animation.normalized} dispose={null} />
+      </group>
     </group>
   );
 }
 export function Character({
   gift,
   showcase = false,
+  previewMotion,
   onReady,
 }: {
   gift: Gift;
   showcase?: boolean;
+  previewMotion?: { name: HeroMotion; request: number };
   onReady?: () => void;
 }) {
-  const wrapper = useRef<Group>(null!),
-    motion = useRef<Group>(null!);
-  const reduced = useGame((s) => s.reduced);
+  const wrapper = useRef<Group>(null!);
+  const runtime = useMemo<MotionRuntime>(
+    () => ({
+      state: initialHeroMotion(),
+      delta: 0,
+      reduced: false,
+      duration: 2,
+    }),
+    [gift.modelUrl, showcase],
+  );
+  const systemReduced = useRef(false);
+  const resumed = useRef(false);
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const preference = () => {
+      systemReduced.current = media.matches;
+    };
+    const visibility = () => {
+      if (document.hidden) resumed.current = true;
+    };
+    preference();
+    media.addEventListener("change", preference);
+    document.addEventListener("visibilitychange", visibility);
+    return () => {
+      media.removeEventListener("change", preference);
+      document.removeEventListener("visibilitychange", visibility);
+    };
+  }, []);
+  const previewName = previewMotion?.name;
+  const previewRequest = previewMotion?.request;
+  useEffect(() => {
+    if (showcase) return;
+    return useGame.subscribe((after, before) => {
+      runtime.state = observeHeroQuest(
+        runtime.state,
+        before.game,
+        after.game,
+        after.reduced,
+      );
+    });
+  }, [runtime, showcase]);
+  useEffect(() => {
+    if (showcase && previewName)
+      runtime.state = requestHeroMotion(
+        runtime.state,
+        useGame.getState().reduced || systemReduced.current
+          ? "idle"
+          : previewName,
+      );
+  }, [runtime, showcase, previewName, previewRequest]);
   useEffect(() => {
     if (!gift.modelUrl) onReady?.();
   }, [gift.modelUrl, onReady]);
-  useFrame(({ clock }) => {
-    if (!wrapper.current) return;
-    const { game } = useGame.getState();
-    const t = clock.elapsedTime;
+  useFrame((_, delta) => {
+    const { game, reduced: settingReduced } = useGame.getState();
+    const reduced = settingReduced || (showcase && systemReduced.current);
+    const hidden = document.hidden;
+    const frame = {
+      delta: resumed.current ? 0 : delta,
+      moving: showcase ? previewName === "walk" : Boolean(game.target),
+      paused: !showcase && game.paused,
+      hidden,
+      reduced,
+      celebrationDuration: runtime.duration,
+    };
+    resumed.current = hidden;
+    runtime.delta = heroMotionDelta(frame);
+    runtime.reduced = reduced;
+    runtime.state = advanceHeroMotion(runtime.state, frame);
     if (!showcase) {
       const a = waypoints[game.location],
         b = game.target ? waypoints[game.target] : a;
@@ -170,36 +354,23 @@ export function Character({
         ? Math.atan2(b[0] - a[0], b[2] - a[2])
         : 0.2;
     }
-    if (reduced) {
-      motion.current.position.y = 0;
-      motion.current.rotation.z = 0;
-    } else if (!game.paused) {
-      motion.current.position.y =
-        gift.config.movement === "float"
-          ? 0.09 + Math.sin(t * 2) * 0.09
-          : gift.config.movement === "bounce"
-            ? Math.abs(Math.sin(t * (game.target ? 8 : 2))) * 0.1
-            : 0;
-      motion.current.rotation.z =
-        gift.config.movement === "sway" ? Math.sin(t * 2) * 0.07 : 0;
-    }
-  });
+  }, -2);
   return (
     <group ref={wrapper} scale={showcase ? 1 : 0.72}>
-      <group ref={motion}>
-        {gift.modelUrl ? (
-          <Loaded
-            url={gift.modelUrl}
-            forward={gift.config.forward}
-            onReady={onReady}
-          />
-        ) : (
-          <group rotation={[0, (gift.config.forward * Math.PI) / 180, 0]}>
-            <Pip />
-          </group>
-        )}
-        {!showcase && <CarriedStar dedication={gift.config.dedication} />}
-      </group>
+      {gift.modelUrl ? (
+        <Loaded
+          url={gift.modelUrl}
+          forward={gift.config.forward}
+          onReady={onReady}
+          runtime={runtime}
+          movement={gift.config.movement}
+        />
+      ) : (
+        <group rotation={[0, (gift.config.forward * Math.PI) / 180, 0]}>
+          <Pip runtime={runtime} />
+        </group>
+      )}
+      {!showcase && <CarriedStar dedication={gift.config.dedication} />}
     </group>
   );
 }
