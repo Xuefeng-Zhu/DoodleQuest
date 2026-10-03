@@ -149,6 +149,7 @@ export async function validateModel(data: Buffer) {
       (e) =>
         ![
           "EXT_meshopt_compression",
+          "KHR_mesh_quantization",
           "KHR_texture_transform",
           "KHR_materials_unlit",
         ].includes(e),
