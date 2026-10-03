@@ -8,7 +8,7 @@ An adult creator turns art they have permission to use into an unlisted playable
 
 Proposed direction: **Game**. One environment, one quest, three stations. Personalization changes character/presentation/ending, not arbitrary rules.
 
-Proposed tool track: **Tripo — conditional on live evidence**. The real v3 adapter and durable worker are implemented. Its stored model becomes the same character that navigates and carries the star. However, **live Tripo generation was not run: credentials were unavailable**. Procedural sample and mocked tests are not proof of tool-track usage. Complete and record the README live smoke test before claiming this track.
+Proposed tool track: **Tripo — conditional on live evidence**. The real v3 adapter and durable worker are implemented. Its stored model becomes the same character that navigates and carries the star. However, **live Tripo generation was not run: credentials were unavailable**. Procedural sample and mocked tests are not proof of tool-track usage. Complete and record the [live smoke test](docs/operations.md#live-smoke-test) before claiming this track.
 
 ## Official event review
 

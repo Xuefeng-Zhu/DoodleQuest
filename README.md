@@ -1,10 +1,14 @@
 # DoodleQuest
 
-**Your drawing deserves a world.** An adult-created, family-oriented browser prototype: a drawing becomes a 3D interpretation, then the hero of a tiny playable gift.
+**Your drawing deserves a world.** An adult-created, family-oriented browser prototype that turns a drawing into a 3D interpretation and the hero of a small playable gift.
 
-## Run locally
+Create a character, write a personal note, and share an unlisted adventure. The recipient rings three bells, collects a star, and delivers it to open their letter. The included Pip example works without credentials or paid generation.
 
-Node 24 LTS and npm recommended. Exact dependencies are in `package-lock.json`.
+![The procedural Pip example at the bell gate](evidence/gameplay-desktop.png)
+
+## Quick start
+
+Use **Node.js 24 and npm**, matching the repository's Docker image. Run these commands from the repository root:
 
 ```sh
 npm ci
@@ -14,103 +18,53 @@ npm run db:seed
 npm run dev
 ```
 
-Open **http://localhost:3000** (use the exact configured `APP_ORIGIN`). `dev` starts Next.js and the separate durable Node worker. `/example` needs no credentials. `/create` persists drafts in this browser's owner session. Keep its cookies: there is no account recovery. No child name, age, photo, school, or location is required.
+Copy the environment template only on first setup; keep an existing `.env`. Leave its credentials blank to use example mode. `db:seed` renders the repository's Pip drawing and initializes the schema; it makes no provider calls.
 
-The island celebrates earned progress: each correct bell lights a ribbon section, collecting the star opens the garden flowers, and delivery warms the island with a golden rim and little stars. Rewards persist until replay; pause and reduced-motion settings apply without changing the quest.
+Open [http://localhost:3000](http://localhost:3000), the default `APP_ORIGIN`. `npm run dev` starts both Next.js and the durable Node worker; Ctrl+C stops both. Use the exact configured origin for creator actions: `localhost` and `127.0.0.1` are not interchangeable.
 
-Delivery also brings a sealed envelope. Choose **Open your letter** to read the creator’s unchanged note on warm stationery, then fold it for rereading or play again. The letter supports keyboard/touch controls, reduced motion, long-message scrolling and the creator’s original-drawing permission. No additional generation or credentials are needed.
+| Route                                       | What to try                                                                                                                                         |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`/example`](http://localhost:3000/example) | Play the complete procedural example without credentials.                                                                                           |
+| [`/create`](http://localhost:3000/create)   | Choose **Try it with our Pip drawing**, wait for the preview, and select **That’s my hero**. Add your words, preview, then wrap and publish a gift. |
+| `/preview/<project-id>`                     | Play an owner-only draft preview from the workshop.                                                                                                 |
+| `/gift/<token>`                             | Open an immutable published gift; recipients need no account.                                                                                       |
 
-Creators can add **A little saying (optional)**: up to 60 characters of a shared phrase, tiny memory or inside joke. The same paper tag appears at the opening, travels above the collected star, and is tucked into the final letter. It is visible from the start, not part of the surprise message. Leave it blank to omit it. Saved drafts and immutable gift snapshots preserve the exact words; older gifts remain without a tag. This adds no paid generation.
+Drafts are stored on the server, with ownership tied to this browser's cookie. Keep that cookie: there is no account recovery. No child name, age, photo, school, or location is required.
 
-**Tiny wonders off the path:** tap the sleepy flower to open it, tickle the little cloud for a puff, or invite the butterfly to keep the hero company briefly. They are optional, repeatable moments, not collectibles or quest requirements. The compact **Little wonders** control provides the same actions for keyboard users. Effects settle on their own, freeze while paused, respect reduced motion and reset on replay. The no-WebGL alternative describes these moments in words. All three are original procedural geometry; no credentials or generation calls are needed.
+## Choose a mode
 
-**A melody that comes home:** opt into **Gentle sounds** at the opening or in settings. The circle, triangle and star bells play three notes; collecting the star gives a higher echo, and first opening the letter brings those notes back in a short, resolving music-box phrase. **Play the melody** lets you listen again and explicitly enables sound; **Stop melody**, mute, pause, folding, replay and leaving the page stop it. A folded letter does not automatically repeat the tune. Sound is off by default and never required. Music is synthesized locally from an original fixed score—no audio download, microphone access, AI provider, credentials or looped background music.
+| Mode                       | Configuration                                          | What it proves                                                                                                                                                                               |
+| -------------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Example** (default)      | Leave `TRIPO_API_KEY` blank.                           | Complete quest, draft saving, approval, sharing, revocation and deletion with authored procedural Pip. **Pip is not Tripo-generated.** Custom uploads need live generation to become a hero. |
+| **Live**                   | Server-side `TRIPO_API_KEY` and `CREATOR_ACCESS_CODE`. | The adapter uploads to Tripo, submits a task, polls and validates a protected GLB. Successful live generation remains unverified in the recorded delivery.                                   |
+| **Mock** (automated tests) | `E2E_MOCK_PROVIDER=1`, nonproduction only.             | Deterministic provider responses and a labeled octahedron GLB. Production rejects this flag; mock results are not live evidence.                                                             |
 
-**Wrapping the gift becomes a moment:** in **Preview & share**, choose **Wrap this gift**. Review the recipient, unchanged note and original-drawing permission, then choose **Seal & publish gift**. The paper parcel takes its ribbon and heart seal only after the server confirms a saved snapshot. Copy its link or open it; nothing is sent automatically. Cancel before sealing without publishing. Reduced motion settles the parcel immediately, and the long note remains scrollable. A lost response offers **Check saved gift links**, never an automatic second publication. Existing version links, revocation and deletion remain in the workshop. This adds no generation cost or credentials.
+Live browser generation requires an unlocked creator session, explicit drawing-transfer consent and an available quota reservation. The default cap is **10 lifetime attempts for the installation and for each session**, including failed or uncertain attempts. See [configuration](docs/configuration.md) before enabling it and the [live smoke test](docs/operations.md#live-smoke-test) before claiming provider success.
 
-## Live, example, and mock modes
+## Create and play
 
-| Mode             | Behavior                                                                                                                                                                                               |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Example, default | Original repository drawing + authored procedural Pip. Complete quest, saving, approval, sharing, revocation, deletion. **Not Tripo-generated.** Arbitrary uploads cannot masquerade as generated Pip. |
-| Live             | Server-side `TRIPO_API_KEY` + `CREATOR_ACCESS_CODE`. Documented v3 upload → image-to-model → polling → validated protected GLB. Live smoke test **not run**: credentials were not available.           |
-| Mock             | Explicit `E2E_MOCK_PROVIDER=1`, nonproduction only. Automated tests use a labeled octahedron GLB and deterministic responses. Never live evidence; production rejects this flag.                       |
+The gift includes a permission-aware drawing reveal, an optional 60-character saying that travels with the star, a letter containing the creator's saved note, and a wrapping review before publication. Optional flower, cloud and butterfly interactions add small moments along the path. Gentle sounds are off by default and synthesized locally.
 
-## Credentials and generation
+Mouse, touch and keyboard controls share the same quest. Pause, reduced motion, low rendering quality and a readable no-WebGL alternative are available. See the [creator and recipient guide](docs/experience.md) for the complete flow, controls and privacy behavior.
 
-Set `TRIPO_API_KEY` only on the server, never in a `NEXT_PUBLIC_` variable. Set a strong `CREATOR_ACCESS_CODE`. Every paid creation requires an unlocked owner session, explicit drawing-transfer consent and a quota reservation. The default installation-wide **and** per-session quota is 10 attempts, including failed/uncertain attempts. Project deletion does not reset it; the global cap prevents bypass through new cookies.
+## Documentation
 
-`TRIPO_MODEL=v3.1-20260211` is a configurable documented H-series model. Requests specify 20,000 faces, standard textures, no sketch enhancement or rigging, and documented geometry/meshopt compression. Validate actual outputs independently of requested options. Review current provider pricing before live use.
+| Guide                                                                    | Use it for                                                                            |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| [Configuration](docs/configuration.md)                                   | Environment variables, modes, credentials, quotas and local ports.                    |
+| [Operations and troubleshooting](docs/operations.md)                     | Web/worker deployment, persistent storage, generation recovery and live verification. |
+| [Creator and recipient guide](docs/experience.md)                        | Making, playing, sharing, revoking and deleting gifts.                                |
+| [Contributing](CONTRIBUTING.md)                                          | Development commands, focused tests, recording evidence and Git conventions.          |
+| [Architecture](ARCHITECTURE.md)                                          | Source map, ownership, snapshots, worker reliability and rendering budgets.           |
+| [Verification record](COMPLETION.md)                                     | Dated check results, measurements and unverified layers.                              |
+| [Asset provenance](ASSET_PROVENANCE.md)                                  | Origins and permissions for drawings, geometry, music and generated assets.           |
+| [Demo script](DEMO_SCRIPT.md) · [Asset board](evidence/asset-board.html) | Recorded product evidence and suggested narration.                                    |
+| [Drawing reveal](REVEAL.md) · [Submission notes](SUBMISSION.md)          | Feature-specific evidence and the conditional event submission draft.                 |
 
-Browser refresh cannot resubmit. Worker restarts resume known task IDs. Provider success and local asset success are separate statuses. Asset retries retrieve fresh output URLs without regeneration. Submission timeouts or interrupted submits without a saved task ID become **uncertain** and stop. No client idempotency lookup capability is assumed: check the Tripo console before explicitly authorizing another paid attempt. Percentages are only provider-reported.
+## Delivery status
 
-`TRIPO_ASSET_HOSTS` is an exact server-configured output-host allowlist; default `cdn.tripo3d.ai` matches the official response example. If a live response uses another host, review it before extending the list. Never accept a caller-supplied host, wildcard, private address or unrestricted proxy.
+This is a locally verified prototype. [COMPLETION.md](COMPLETION.md) records unit, Chromium, build and rendering checks with their dates and scopes; it is not a claim that every check has just been rerun. The [92.56-second baseline walkthrough](evidence/walkthrough.mp4) uses procedural Pip and predates later feature recordings.
 
-To queue and cache one paid real sample:
+Live Tripo output, Docker deployment, hosted HTTPS, backup/restore, Safari/Firefox and physical device/audio behavior remain unverified in that record. Deployment requires **one persistent node with shared local SQLite and asset storage**; ephemeral serverless hosting is unsuitable.
 
-```sh
-npm run sample:generate -- --confirm-paid
-npm run worker
-```
-
-The CLI caches protected output, not a distributable sample, and its job is inspectable locally in SQLite. For normal visual approval/sharing use the creator UI instead. Review redistribution permissions and update provenance before bundling a real model. None is currently distributed.
-
-## Production: one persistent node, not ephemeral serverless
-
-```sh
-npm run build
-npm run db:migrate
-npm run start     # web process
-npm run worker    # separate process, same DATA_DIR
-```
-
-Or `docker compose up --build -d`. Configure `.env` with the final HTTPS `APP_ORIGIN`, credentials and quota. Terminate TLS at a reverse proxy; production owner cookies are Secure. Compose binds web to loopback for the proxy. Both processes **must share the persistent `/data` volume**, local SQLite locking, and write permission for UID 1000. Do not put SQLite on a network filesystem, scale to multiple nodes, or use ephemeral serverless hosting. Back up SQLite and assets together using a consistent snapshot. Never expose `/data` as static files.
-
-Docker and deployed HTTPS operation have not been exercised. Local verification is recorded in `COMPLETION.md`.
-
-## Privacy and controls
-
-Gift links are **unlisted, not fully private**. Anyone with a link can view its immutable snapshot. Later edits do not change it. Revocation denies future requests but cannot erase already downloaded copies or an already open browser. Recipient routes never invoke paid APIs. Each asset request verifies ownership or an active gift token referencing that exact asset.
-
-JPEG/PNG uploads are bounded to 10 MB, decoded, dimensions checked, metadata stripped, and stored privately. Original and crop/rotation input are separate assets. Generated models must be self-contained validated GLB2. Names/messages render as text. Mutations enforce same-origin and HTTP-only SameSite owner sessions; production cookies are Secure. Persistent rate limits and quotas gate paid creation.
-
-Deleting a project revokes access and removes references and local originals/models. A durable file-delete queue retries filesystem failures. Minimal anonymous quota counts survive deletion, not drawings/names/messages/share tokens. Deletion from Tripo is **not promised**. This prototype does not claim formal child-privacy compliance or legal certification.
-
-## Verification
-
-```sh
-npm test
-npm run typecheck
-npm run test:e2e
-npm run build
-```
-
-Browser tests use temporary storage, localhost:3107, and an explicitly mocked provider. Install Chromium if needed (`npx playwright install chromium`). Screenshots, actual browser videos and console observations are in `evidence/` and the test report. DOM controls support keyboard, mouse and touch; reduced motion, pause, low rendering mode and readable WebGL failure states are included.
-
-The delivered `evidence/walkthrough.mp4` is a 92.56-second actual browser recording (silent, procedural example clearly labeled). Open `evidence/asset-board.html` for the visual board. To rerecord against the running local app:
-
-```sh
-npm run demo:record
-ffmpeg -y -i evidence/walkthrough.webm -c:v libx264 -pix_fmt yuv420p -movflags +faststart evidence/walkthrough.mp4
-```
-
-Recording creates a fictional example draft and local share in the selected instance. `DEMO_BASE_URL` may override the default localhost URL; do not point this evidence script at a production service without intending those writes.
-
-See `ARCHITECTURE.md`, `ASSET_PROVENANCE.md`, `COMPLETION.md`, `SUBMISSION.md`, and `DEMO_SCRIPT.md`.
-
-The recipient opening now includes a permission-aware **drawing meets world** reveal. See `REVEAL.md` for behavior, tests and the new short actual-product recording. `npm run demo:reveal` records only the bundled recipient example and performs no creator or generation writes.
-
-## Live smoke test — not run
-
-1. Configure key, code, model, origin and quota. Start web and worker. Use only the repository drawing for this first test, not a child's private image.
-2. Upload its PNG using **Choose a drawing** (the quick sample button deliberately selects the procedural hero). Consent, unlock and submit once. Record the task ID, never the key.
-3. Refresh and restart the worker while polling. Verify the same ID and exactly one provider submission/charge.
-4. Verify provider success, reviewed CDN, copied GLB budget, browser loading, forward adjustment, approval and gameplay using that actual model. Local failure must not regenerate.
-5. Publish, open a separate recipient context, complete, capture actual provenance/gameplay, revoke, and delete.
-6. Update evidence only after these checks pass. Mock results do not substitute.
-
-## Official sources reviewed, 2026-09-30
-
-- [Requested generation entry](https://platform.tripo3d.ai/docs/generation) and [image-generation entry](https://platform.tripo3d.ai/docs/generate-image); followed their v3 migration navigation.
-- [Migration](https://developers.tripo3d.ai/en/docs/migration-v2-to-v3), [image-to-model](https://developers.tripo3d.ai/en/docs/generation-image-to-model/standard), [upload](https://developers.tripo3d.ai/en/docs/files), [task retrieval](https://developers.tripo3d.ai/en/docs/task-query), [rate limits](https://developers.tripo3d.ai/en/docs/rate-limits).
-- [Tripothon S1](https://developers.tripo3d.ai/en/events/tripothon-s1).
+Gift links are **unlisted, not fully private**. Anyone with a link can view its saved snapshot. Revocation blocks future requests but cannot retract downloaded copies. Project deletion removes local access and queues local file cleanup; provider-side deletion is not promised. Read the [privacy and sharing details](docs/experience.md#privacy-and-sharing) before using personal artwork.

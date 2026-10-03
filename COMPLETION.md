@@ -158,7 +158,7 @@ The original PNG is 43,744 bytes. The test-only mock GLB is 1,276 bytes / 8 tria
 | Pip drawing and toy-like hero                                                                            | Original repository assets. Hero is procedural, **not Tripo-generated**.                                               |
 | Quest, personalization, SQLite persistence and share lifecycle                                           | Real local application behavior, tested in browser.                                                                    |
 | Tripo upload, image-to-model, task retrieval and safe worker processing                                  | Real server adapter implemented from current official v3 documentation; automated network responses explicitly mocked. |
-| Successful provider generation, charge count, provider CDN output, generated-model browser compatibility | **Not run**: no Tripo credentials were available. Follow the exact README smoke-test steps.                            |
+| Successful provider generation, charge count, provider CDN output, generated-model browser compatibility | **Not run**: no Tripo credentials were available. Follow the [live smoke-test steps](docs/operations.md#live-smoke-test). |
 | Optional sketch enhancement                                                                              | Not implemented; direct image-to-model is the supported path.                                                          |
 
 Arbitrary uploads in example mode do not silently receive Pip. Failed live generation is never replaced by a sample. Recipient viewing and gameplay do not call paid generation APIs.
