@@ -2,114 +2,87 @@
 
 [Back to README](../README.md) · [Configuration](configuration.md) · [Architecture](ARCHITECTURE.md)
 
-DoodleQuest runs as one Next.js web process and one Node worker on **one persistent node**. They share a SQLite database and private assets on local disk. The deployment configuration is supplied, but Docker, hosted HTTPS and backup/restore remain unverified in the [delivery record](COMPLETION.md).
+DoodleQuest targets [Vercel + Neon](VERCEL.md). Next.js serves the app, Vercel Workflows advances generation and motion jobs, and PostgreSQL stores both application records and private PNG/GLB bytes. Hosted setup, hosted HTTPS acceptance and backup/restore remain unverified; local checks do not establish that a Neon deployment is working.
 
 ## Process and storage layout
 
 ```text
-Browser → HTTPS reverse proxy → Next.js web
-                                  ↕
-                       shared local DATA_DIR
-                                  ↕
-                             Node worker → Tripo
-
-DATA_DIR/
-  doodlequest.sqlite       drafts, sessions, jobs, snapshots and quotas
-  doodlequest.sqlite-wal   SQLite may create WAL/SHM sidecars while running
-  doodlequest.sqlite-shm
-  assets/                 protected PNG and GLB files
+Browser → Vercel Next.js → Neon PostgreSQL
+                  ↓                ↕
+          Vercel Workflow → Node.js step → Tripo
 ```
 
-The web process accepts requests and queues work. The worker advances generation jobs and retries queued file deletion, including in example mode. `npm run dev` starts both; `npm run start` starts only the web process.
+The web app commits each job and its quota reservation before dispatching a workflow for that job ID. Workflow steps claim fenced database leases, save provider task IDs and poll known tasks. Owner status requests can recover missed dispatches or stopped runs. Private assets remain behind application authorization; do not expose database dumps or asset payloads as static files.
 
-Use the same absolute `DATA_DIR`, environment settings and application version for both services. Do not place SQLite on a network filesystem, expose `DATA_DIR` as static files, scale across nodes or deploy on ephemeral serverless storage. Asset authorization is enforced by the application on each request.
+Without `DATABASE_URL`, local development uses embedded PostgreSQL (PGlite) under `DATA_DIR/postgres`. `npm run dev` starts the Next.js app with local Workflow execution; it no longer starts a separate worker. PGlite is for one process only. A concurrently running web app and standalone `npm run worker` must use the same external `DATABASE_URL`, not the same embedded database directory. Vercel rejects a missing `DATABASE_URL` instead of falling back to ephemeral local storage.
 
-## Production processes
+## Hosted setup and checks
 
-Configure the final HTTPS `APP_ORIGIN`, persistent `DATA_DIR`, credentials and quota using the [environment reference](configuration.md). Build and initialize from the repository root:
+Follow [Vercel + Neon deployment](VERCEL.md) and the [environment reference](configuration.md). Use Node.js 24, the Next.js framework preset and `npm run build`. Connect a dedicated Neon database through Vercel Storage. Vercel manages request and Workflow execution; do not launch the standalone worker or Render supervisor there.
 
-```sh
-npm ci
-npm run build
-NODE_ENV=production npm run db:migrate
-```
+Start the hosted example with `GENERATION_QUOTA=0`, no Tripo key, and `E2E_MOCK_PROVIDER=0`. Keep the database connection string encrypted and server-only. Use a separate database or Neon branch for preview writes. Omit `APP_ORIGIN` to derive the appropriate Vercel production or preview hostname, or set the exact HTTPS origin for a custom domain.
 
-Run these as separately supervised processes from the same checkout:
+Database initialization is lazy, idempotent and protected by a PostgreSQL advisory lock; the build does not connect to the database. `npm run db:migrate` can initialize the configured database explicitly. Do not point maintenance commands or local verification at an unrelated database.
 
-```sh
-# Web service; choose the listener port explicitly if changing the default.
-NODE_ENV=production PORT=3000 npm run start
-```
+After deployment, verify `/`, `/example`, `/api/health` and `/api/mode` through the HTTPS origin. Health checks database connectivity; the mode endpoint reports example/live configuration and upload limits. Neither proves that Workflow execution or Tripo is working. Use a procedural draft to verify save/reload, approval, publication in a separate browser context, asset persistence, revocation and deletion. Record these hosted results before claiming deployment acceptance.
 
-```sh
-# Worker service; Next.js does not set NODE_ENV for this separate process.
-NODE_ENV=production npm run worker
-```
+Use Vercel function and Workflow logs for dispatch or job failures, and Neon monitoring for database storage and transfer. The default 200 MiB asset budget limits payloads only, not total database size or bandwidth. Generation remains separately authorized and should reuse existing provider tasks whenever possible.
 
-Terminate TLS at a reverse proxy. Owner cookies are Secure in production; use the configured HTTPS origin to verify creator persistence and mutations. Process supervision must restart both services and preserve the data directory across updates. `E2E_MOCK_PROVIDER` must be `0` in production.
+### Optional standalone operator worker
 
-### Docker Compose
+`npm run worker` remains available for a trusted operator, including for a job queued by `sample:generate`. If the web app is also running, both must use the same external `DATABASE_URL`, provider settings and application version. Set `NODE_ENV=production` explicitly for a production standalone worker; `tsx` does not set it automatically. For an embedded local database, stop the web app and other database users before running the worker, and stop the worker before reopening the app.
 
-The checked-in [Dockerfile](../Dockerfile) and [Compose configuration](../compose.yaml) run as UID 1000, mount the same named volume at `/data` and set `NODE_ENV=production` for both services. Prepare `.env` and the HTTPS reverse proxy, then:
-
-```sh
-docker compose up --build -d
-docker compose ps
-docker compose logs --tail=100 web worker
-```
-
-Compose overrides `DATA_DIR` with `/data`. Keep `PORT=3000` to match the container and loopback host mapping. If replacing the named volume with a bind mount, provide write permission for UID 1000. The database initializes idempotently when either process imports it; no separate migration container is required for the current schema.
-
-After startup, verify `/`, `/example` and `/api/mode` through the HTTPS origin. `/api/mode` reports configuration, not worker health or a successful provider connection. Use a procedural draft to verify save/reload, approval, publication in a separate browser context, revocation and deletion. Complete the live smoke test separately if enabling paid generation.
+The earlier local SQLite database and asset directory are left untouched. This branch does not import them into PostgreSQL automatically. Do not treat old local gift links or generated assets as present in a newly deployed database.
 
 ## Backup and restore
 
-Back up the **database and assets together**. A copy of the SQLite main file alone while WAL writes are active is insufficient. For a simple maintenance-window backup:
+Back up the **complete PostgreSQL database**, including `asset_blobs`, gift snapshots, sessions, job/task IDs and quota history. Use a database-consistent dump or a supported provider backup; copying Vercel files is not a backup. For a restore exercise:
 
-1. Stop web and worker, preventing new requests and generation writes.
-2. Snapshot or copy the entire persistent data directory or named volume, including any SQLite sidecars, while both services remain stopped.
-3. Store that backup privately, then restart both services with the same configuration.
-4. Test restoration into an isolated instance with matching code. Check database readability and referenced asset availability before accepting writes.
+1. Prevent application and Workflow writes if the chosen backup method requires a maintenance window.
+2. Capture all tables and store the backup privately.
+3. Restore into an isolated database with matching code and provider credentials disabled.
+4. Verify draft/snapshot readability and referenced asset bytes before accepting writes or enabling generation.
 
-A backup contains private drawings, notes, session records and gift tokens. Keep restored instances isolated, disable paid generation during inspection, and review any pending or uncertain jobs before re-enabling a worker with credentials. Restoring an older snapshot also restores its older quota and revocation state; reconcile these before exposing it to recipients.
+A backup contains private drawings, notes, session records and gift tokens. Review pending or uncertain jobs and recorded provider task IDs before enabling execution with credentials. Restoring an older snapshot also restores its older quota and revocation state; reconcile these before exposing it to recipients. For local PGlite, stop its sole process before copying or restoring its complete database directory.
 
 These are operational requirements, not a tested backup tool bundled with the project. Record a successful restore exercise before claiming recovery readiness.
 
 ## Generation recovery
 
-Inspect the creator's generation status and provenance first. The provider status and local job status describe different stages; a provider success does not mean a validated local model is ready.
+Inspect the creator's generation status and provenance first. The provider status and application job status describe different stages; a provider success does not mean a validated, stored model is ready.
 
-| Local state                       | Meaning                                                                        | Action                                                                                                                                                                           |
-| --------------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pending`, `uploading`            | Waiting for the worker or uploading the drawing.                               | Check that the worker is running with the same `DATA_DIR` and provider configuration. Safe upload failures retry with backoff.                                                   |
-| `submitting`                      | A request may be reaching the provider.                                        | Allow the worker to finish. After interruption without a saved task ID, recovery marks it `uncertain`.                                                                           |
-| `queued`, `generating`, `polling` | A provider task ID is known. Unknown provider statuses also remain in polling. | Keep the worker running; it retrieves that same task. A refresh or restart does not resubmit.                                                                                    |
-| `downloading`, `asset_retry`      | The provider finished; local download or GLB validation is pending or failed.  | Inspect the recorded error, reviewed CDN allowlist, disk permissions and asset budgets. The worker retrieves fresh output URLs and retries delivery without creating a new task. |
-| `ready`                           | A validated model is stored locally.                                           | Load it in the creator preview and approve it. A preview failure does not regenerate.                                                                                            |
-| `failed`                          | The provider rejected or failed the task.                                      | Review the error before explicitly requesting another paid attempt.                                                                                                              |
-| `uncertain`                       | Submission may have consumed credits, but no task ID was saved.                | Check the Tripo console before authorizing another attempt. There is no automatic resubmission or provider-side idempotency lookup.                                              |
+| Local state                       | Meaning                                                                          | Action                                                                                                                                                                               |
+| --------------------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `pending`, `uploading`            | Waiting for execution or uploading the drawing.                                  | Check Workflow dispatch and step logs. Reopen the owner draft to recover dispatch. Safe upload failures retry with backoff.                                                          |
+| `submitting`                      | A request may be reaching the provider.                                          | Allow the worker to finish. After interruption without a saved task ID, recovery marks it `uncertain`.                                                                               |
+| `queued`, `generating`, `polling` | A provider task ID is known. Unknown provider statuses also remain in polling.   | Workflow steps retrieve that same task. A refresh or execution restart does not resubmit.                                                                                            |
+| `downloading`, `asset_retry`      | The provider finished; download, GLB validation or storage is pending or failed. | Inspect the recorded error, reviewed CDN allowlist, database connectivity and asset budgets. Execution retrieves fresh output URLs and retries delivery without creating a new task. |
+| `ready`                           | A validated model is stored in PostgreSQL.                                       | Load it in the creator preview and approve it. A preview failure does not regenerate.                                                                                                |
+| `failed`                          | The provider rejected or failed the task.                                        | Review the error before explicitly requesting another paid attempt.                                                                                                                  |
+| `uncertain`                       | Submission may have consumed credits, but no task ID was saved.                  | Check the Tripo console before authorizing another attempt. There is no automatic resubmission or provider-side idempotency lookup.                                                  |
 
-Worker claims use 120-second leases, so restart recovery can wait for an outstanding lease to expire. Error backoff reaches five minutes, or longer when provider retry headers require it. `POLL_INTERVAL_MS` is the normal polling interval, not a guarantee that every retry runs at that cadence. Displayed percentages come only from the provider. Drawing replacement is blocked while a job remains active, including `asset_retry`.
+Worker claims use 120-second leases, so restart recovery can wait for an outstanding lease to expire. Dispatch uses a 60-second claim for an uncertain enqueue and rechecks a recorded run after five minutes. Owner status polling can recover a missed start or a stopped run; it does not authorize a new paid attempt. Each workflow is bounded to 720 advances of the same job. Error backoff reaches five minutes, or longer when provider retry headers require it. `POLL_INTERVAL_MS` is the normal polling interval, not a guarantee that every retry runs at that cadence. Displayed percentages come only from the provider. Drawing replacement is blocked while a job remains active, including `asset_retry`.
 
 ## Troubleshooting
 
-| Symptom                                                           | Check or recovery                                                                                                                                                                       |
-| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Creator actions return “This action must come from this website.” | Match the browser scheme, hostname and port to `APP_ORIGIN`. Restart after configuration changes. Use `localhost` consistently instead of switching to `127.0.0.1`.                     |
-| Creator session expired or drafts disappeared                     | Use the original browser/profile and cookie. Owner sessions last 90 days; there is no recovery via the creator access code. An expired or lost cookie cannot reclaim its drafts.        |
-| “The host has not configured creator access.”                     | Set `CREATOR_ACCESS_CODE` on the server and restart the web process. Keep web and worker settings consistent.                                                                           |
-| Quota reached                                                     | Both lifetime session and installation counts apply. Failed/uncertain attempts and deleted projects still count. Review usage before intentionally changing the host's cap.             |
-| A generic request failure after moving data                       | Confirm both processes resolve the same `DATA_DIR`, the directory is writable and its database and assets were moved together.                                                          |
-| Generation never advances                                         | Confirm the separate worker is running. Inspect its logs and the recovery table; a page returning 200 is not worker health evidence.                                                    |
-| Gift publication was not confirmed                                | Use **Check saved gift links** in the wrapping dialog. It checks existing snapshots without another publication request. A closed dialog does not revoke an already saved gift.         |
-| Copying the gift link fails                                       | Select and copy the read-only link manually. The UI reports success only after the clipboard operation resolves.                                                                        |
-| Deleting a project returns a busy-worker message                  | Wait for the current worker lease to finish or expire, then retry. Access is removed transactionally on deletion; failed file unlinks remain queued for the worker.                     |
-| Model or WebGL fails to load                                      | Use the readable alternative, try low rendering quality, and inspect model validation or browser errors. Reloading the preview does not start generation.                               |
-| Port 3107 is occupied during browser tests                        | Stop the conflicting service you own before testing. The isolated harness intentionally refuses to reuse an existing server. See [Contributing](CONTRIBUTING.md#verification-workflow). |
+| Symptom                                                           | Check or recovery                                                                                                                                                                                                           |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Creator actions return “This action must come from this website.” | Match the browser scheme, hostname and port to the configured or platform-derived origin. Redeploy after hosted configuration changes. Locally, use `localhost` consistently instead of switching to `127.0.0.1`.           |
+| Creator session expired or drafts disappeared                     | Use the original browser/profile and cookie. Owner sessions last 90 days; there is no recovery via the creator access code. An expired or lost cookie cannot reclaim its drafts.                                            |
+| “The host has not configured creator access.”                     | For authorized live use, set `CREATOR_ACCESS_CODE` in the server environment and redeploy or restart. Keep any standalone worker settings consistent.                                                                       |
+| Quota reached                                                     | Both lifetime session and installation counts apply. Failed/uncertain attempts and deleted projects still count. Review usage before intentionally changing the host's cap.                                                 |
+| A generic request failure after changing databases                | Confirm the intended `DATABASE_URL` is configured and reachable, schema initialization succeeded, and the full database includes its asset bytes. Old SQLite data is not imported automatically.                            |
+| Generation never advances                                         | Inspect Vercel Workflow and function logs, then reopen the owner draft to recover dispatch. Check the saved state before any explicit retry; a healthy web page does not prove job execution.                               |
+| Gift publication was not confirmed                                | Use **Check saved gift links** in the wrapping dialog. It checks existing snapshots without another publication request. A closed dialog does not revoke an already saved gift.                                             |
+| Copying the gift link fails                                       | Select and copy the read-only link manually. The UI reports success only after the clipboard operation resolves.                                                                                                            |
+| Deleting a project returns a busy-worker message                  | Wait for the current step or active motion job to finish, or for an interrupted lease to expire, then retry. Project records, gift access and stored asset bytes are removed transactionally.                               |
+| Upload is rejected or model storage is full                       | Check `/api/mode` for the upload limit. Vercel uploads are below 4 MiB with reserved multipart overhead; the asset payload budget is separate. Delete unused projects or review database capacity before increasing limits. |
+| Model or WebGL fails to load                                      | Use the readable alternative, try low rendering quality, and inspect model validation or browser errors. Reloading the preview does not start generation.                                                                   |
+| Port 3107 is occupied during browser tests                        | Stop the conflicting service you own before testing. The isolated harness intentionally refuses to reuse an existing server. See [Contributing](CONTRIBUTING.md#verification-workflow).                                     |
 
 ### Animation recovery
 
-The workshop's **Check animation status** button only reads the saved motion job. Its stage identifies compatibility checking, rigging, or animation. The same pending/queued/polling/asset-retry/failed/uncertain rules apply to each stage, and earlier successful stages are retained. `unsupported` is terminal and preserves the original hero. On an explicit retry of a failed or uncertain stage, only that stage and its remaining successors are requested again; review uncertain submissions in the provider console first.
+The workshop's **Check animation status** button retrieves the saved motion job and can recover execution of that same active job. It does not create a new attempt. Its stage identifies compatibility checking, rigging, or animation. The same pending/queued/polling/asset-retry/failed/uncertain rules apply to each stage, and earlier successful stages are retained. `unsupported` is terminal and preserves the original hero. On an explicit retry of a failed or uncertain stage, only that stage and its remaining successors are requested again; review uncertain submissions in the provider console first.
 
 The current hero remains usable while motion is pending or unsuccessful. A successful replacement needs approval again. If local validation cannot recognize the expected clips, investigate the saved output and error before changing clip mappings; do not regenerate automatically. Never infer live rigging quality from the authored test fixture.
 
@@ -119,9 +92,9 @@ The current hero remains usable while motion is pending or unsuccessful. A succe
 
 The checklist below describes a future separately authorized run; preparing the submission packet does not require another paid generation. Review current pricing and the remaining quota before any new attempt. Existing saved models and known task IDs should be reused for evidence and recovery.
 
-1. Configure key, creator code, model, exact origin and quota, with `E2E_MOCK_PROVIDER=0`. Start web and worker against the same data directory. Use the repository drawing for the first run, not private personal artwork.
+1. Configure key, creator code, model, origin and quota in the authorized environment, with `E2E_MOCK_PROVIDER=0`. Verify database and Workflow execution first. Any concurrent standalone worker must use the same external `DATABASE_URL`. Use the repository drawing for the first run, not private personal artwork.
 2. Upload `public/sample-drawing.png` through **Choose a drawing**. The quick Pip sample button deliberately selects procedural geometry and will not demonstrate Tripo generation. Save, consent, unlock and submit once. Record the task ID, never the key.
-3. Refresh the browser and restart the worker while polling. Verify the same task ID and exactly one provider submission/charge using the provider's records.
+3. Refresh the browser during polling and verify recovery from an execution interruption in a controlled test. Verify the same task ID and exactly one provider submission/charge using the provider's records.
 4. Verify provider success, the reviewed output host, copied GLB budgets, browser loading, forward adjustment, approval and full gameplay with that actual model. Local asset failure must not regenerate.
 5. Publish a snapshot, open it in a separate recipient browser context, complete the adventure and capture actual provenance and gameplay. Verify revocation and project deletion.
 6. Update [COMPLETION.md](COMPLETION.md) and [ASSET_PROVENANCE.md](ASSET_PROVENANCE.md) only with observed results. Review redistribution permissions before committing any generated model or evidence containing personal artwork.

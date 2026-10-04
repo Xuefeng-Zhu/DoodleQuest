@@ -1,6 +1,6 @@
 # Contributing to DoodleQuest
 
-Start with the [README](../README.md) for local setup and the product overview. Read [Architecture](ARCHITECTURE.md) before changing the creator flow, worker, storage or game state. The [configuration reference](configuration.md) describes environment variables, and [operations](operations.md) covers the persistent web/worker deployment.
+Start with the [README](../README.md) for local setup and the product overview. Read [Architecture](ARCHITECTURE.md) before changing the creator flow, worker, storage or game state. The [configuration reference](configuration.md) describes environment variables, and [operations](operations.md) covers the Vercel/Neon deployment.
 
 ## Before changing code
 
@@ -18,17 +18,17 @@ Run these from the repository root. The definitions live in [package.json](../pa
 
 | Command                                     | Purpose and side effects                                                                                                                                                                                                    |
 | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `npm run dev`                               | Starts both Next.js and the durable worker. Use the configured `APP_ORIGIN`, normally `http://localhost:3000`.                                                                                                              |
-| `npm run dev:web`                           | Starts only the development web process, bound to `127.0.0.1`. Generation jobs need a separate worker.                                                                                                                      |
-| `npm run worker`                            | Runs the worker against the configured `DATA_DIR`; pending live jobs can contact Tripo.                                                                                                                                     |
-| `npm run db:migrate`                        | Applies the idempotent SQLite schema migration to the configured data directory.                                                                                                                                            |
+| `npm run dev`                               | Starts Next.js with durable Workflow jobs. Use the configured `APP_ORIGIN`, normally `http://localhost:3000`.                                                                                                               |
+| `npm run dev:web`                           | Starts the development Next.js/Workflow process, bound to `127.0.0.1`.                                                                                                                                                      |
+| `npm run worker`                            | Runs a standalone worker; use `DATABASE_URL` when a web process is also running. Pending live jobs can contact Tripo.                                                                                                       |
+| `npm run db:migrate`                        | Applies the idempotent PostgreSQL schema migration.                                                                                                                                                                         |
 | `npm run db:seed`                           | Recreates `public/sample-drawing.png` from the repository SVG and migrates the database. It makes no provider call.                                                                                                         |
 | `npm test`                                  | Runs the Vitest unit and server tests once.                                                                                                                                                                                 |
 | `npx next typegen`                          | Generates Next.js route types before typechecking, without a production build.                                                                                                                                              |
 | `npm run typecheck`                         | Runs `tsc --noEmit`; it does not generate the Next.js types first.                                                                                                                                                          |
-| `npm run test:e2e`                          | Starts an isolated local web/worker runtime and runs Chromium browser tests. See the isolation and evidence notes below.                                                                                                    |
+| `npm run test:e2e`                          | Starts an isolated local PostgreSQL/Workflow runtime and runs Chromium browser tests. See the isolation and evidence notes below.                                                                                           |
 | `npm run build`                             | Builds the production application.                                                                                                                                                                                          |
-| `npm run start`                             | Serves the existing production build on `0.0.0.0`; run the worker separately with the same storage.                                                                                                                         |
+| `npm run start`                             | Serves the existing production Next.js/Workflow build on `0.0.0.0`. Vercel manages hosted functions directly.                                                                                                               |
 | `npm run demo:record`                       | Records a running app, creates a fictional draft and publishes a local gift link in that instance, then writes evidence.                                                                                                    |
 | `npm run demo:reveal`                       | Records the running app's bundled `/example` recipient reveal and writes evidence; it performs no creator or generation writes.                                                                                             |
 | `npm run sample:generate -- --confirm-paid` | Queues one potentially paid Tripo sample attempt using the repository drawing. This requires credentials and explicit intent to spend credits; it is not a routine verification command. Run the worker to process the job. |
@@ -107,7 +107,7 @@ npm run test:e2e
 
 [playwright.config.ts](../playwright.config.ts) runs one worker, does not reuse an existing server and launches [scripts/test-server.ts](../scripts/test-server.ts). The launcher sets:
 
-- A fresh `doodlequest-e2e-*` directory under the OS temporary directory for SQLite and private assets.
+- A fresh `doodlequest-e2e-*` directory under the OS temporary directory for embedded PostgreSQL, plus an isolated Workflow data directory. The database and provider credentials are explicitly blanked.
 - `APP_ORIGIN=http://localhost:3107` and `PORT=3107`.
 - `NEXT_DIST_DIR=.next-e2e` so test build output is separate from the normal `.next` directory.
 - An empty `TRIPO_API_KEY`, `E2E_MOCK_PROVIDER=1`, a test-only creator code, quota 100 and 500 ms polling.

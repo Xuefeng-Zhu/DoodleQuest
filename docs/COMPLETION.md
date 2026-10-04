@@ -2,6 +2,19 @@
 
 This working prototype has local application and live Tripo image-to-model evidence. It has no verified production deployment or submitted event entry. Dated sections retain their original test scopes; historical “not run” or “unverified” statements describe those earlier checks and do not override the reconciliation below.
 
+## Vercel and Neon migration — 2026-10-03
+
+The application now uses async PostgreSQL persistence for records and private asset bytes, with Vercel Workflows for durable generation/motion jobs. Local development uses embedded PostgreSQL when no connection URL is configured; Vercel fails closed without a database URL. Existing private SQLite data was preserved and was not imported or published.
+
+Verified locally on this migration:
+
+- `npm test`: **147 tests across 16 files passed**. Coverage includes PostgreSQL rollback, concurrent quota and storage limits, private asset streaming/revocation, atomic drawing replacement, generation uncertainty and Workflow dispatch recovery.
+- TypeScript and the production build passed. The build compiled one workflow and its registered steps. All **11 function traces** were checked after rebuilding: no private `data/`, `evidence/` or `.env` files were included.
+- The native `pg` driver passed an isolated **PostgreSQL 17.11** smoke test using separate backend connections: persisted gifts and exact PNG/GLB bytes, concurrent last-slot quota/storage reservations, nested rollback, pool reopen and container restart. The temporary container and its anonymous volume were removed afterward.
+- The first full Chromium run passed **41 of 42** cases. A development-server configuration reload interrupted the long sharing/revocation case; that case then **passed its isolated rerun in 1.4 minutes** after configuration stabilized. All 42 distinct cases passed across those runs. Mocked generation refresh recovery and the full mocked rigging/shared-gift pipeline passed through the compiled local Workflow runtime.
+
+Hosted Neon connectivity, hosted Workflow execution, Vercel HTTPS and hosted streaming remain unverified. Vercel login was verified on the Hobby plan; Neon provisioning is awaiting the owner's agreement approval in Vercel Marketplace. No Vercel project or Neon database was created, no paid tier selected, and no Tripo credentials were transferred or provider calls made. Initial hosted configuration is example mode with `GENERATION_QUOTA=0`.
+
 ## Tripothon S1 evidence reconciliation — 2026-10-03
 
 The local verification records contain **two distinct successful live Tripo image-to-model jobs**, both using model version `v3.1-20260211`. The stored GLB hashes match those records. Submission preparation reran `npm test`: **96 tests across 11 files passed in 2.43 seconds** on the source based on `origin/main` at `72dda95`. Earlier Chromium and build results below retain their original dates and were not rerun as part of this documentation reconciliation.

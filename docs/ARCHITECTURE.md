@@ -1,6 +1,6 @@
 # Architecture
 
-DoodleQuest runs as one Next.js application and one Node worker sharing SQLite and a private asset directory. The server owns drafts, generation and published snapshots; the browser runs an authored adventure around the approved character. Generated geometry never determines gameplay.
+DoodleQuest runs as a Next.js application on Vercel, with Neon PostgreSQL for records and private asset bytes and Vercel Workflows for durable generation. The server owns drafts, generation and published snapshots; the browser runs an authored adventure around the approved character. Generated geometry never determines gameplay.
 
 Use the [README](../README.md) for setup, [configuration](configuration.md) and [operations](operations.md) for running the services, [REVEAL.md](REVEAL.md) for the opening sequence, and [COMPLETION.md](COMPLETION.md) for recorded verification and its limits.
 
@@ -11,9 +11,9 @@ In this guide: [system map](#system-map) · [source map](#source-map) · [data a
 ```mermaid
 flowchart LR
   Creator[Creator browser] --> API[Next.js API]
-  API --> DB[(SQLite)]
-  API --> Files[Private asset directory]
-  DB --> Worker[Node worker]
+  API --> DB[(Neon PostgreSQL)]
+  API --> Files[Private bytea assets]
+  API --> Worker[Vercel Workflow steps]
   Worker --> Tripo[Tripo API]
   Tripo --> Worker
   Worker --> DB
@@ -23,20 +23,20 @@ flowchart LR
 
 The creator uploads a drawing, requests generation, previews the result and explicitly approves it. The API records a durable job; only the worker uploads to Tripo, submits a task, polls it and validates the downloaded model. Publishing copies the approved draft into an immutable snapshot with an unlisted token. Recipients read that snapshot and its authorized assets without a creator session.
 
-Both processes must use the same persistent `DATA_DIR`: `doodlequest.sqlite` stores records and `assets/` stores PNG/GLB files. This is a **single-node deployment with persistent local disk**. It is not designed for ephemeral serverless storage or multi-node coordination. There is no Redis or separate service framework.
+Hosted instances require the same pooled `DATABASE_URL`. The `asset_blobs` table stores PNG/GLB bytes, with an aggregate application budget of 200 MiB by default. No hosted request depends on local disk. Development without a database URL uses PGlite at `DATA_DIR/postgres`; it runs within one Next.js process. Existing SQLite data is preserved separately and is not imported automatically.
 
 ## Source map
 
-| Concern                | Entry points                                                                                                                                                                         | Responsibility                                                                  |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
-| Pages and API          | [`src/app/`](../src/app/), [`route.ts`](../src/app/api/[...path]/route.ts)                                                                                                           | Creator, preview, gift and example routes; request validation and authorization |
-| Creator flow           | [`Creator.tsx`](../src/components/Creator.tsx), [`GiftWrapping.tsx`](../src/components/GiftWrapping.tsx)                                                                             | Draft editing, read-only polling, approval and publication                      |
-| Persistence            | [`schema.ts`](../src/server/schema.ts), [`db.ts`](../src/server/db.ts), [`repository.ts`](../src/server/repository.ts)                                                               | Records, migrations, quota accounting, job claims and snapshots                 |
-| Generation             | [`worker-entry.ts`](../src/server/worker-entry.ts), [`worker.ts`](../src/server/worker.ts), [`tripo.ts`](../src/server/tripo.ts)                                                     | Worker loop, recoverable job steps and provider adapter                         |
-| Assets and access      | [`storage.ts`](../src/server/storage.ts), [`security.ts`](../src/server/security.ts), [`cleanup.ts`](../src/server/cleanup.ts)                                                       | Image/model validation, private files, owner tokens and deletion                |
-| Adventure rules        | [`src/domain/`](../src/domain/), [`store.ts`](../src/components/game/store.ts)                                                                                                       | Pure state transitions, shared configuration and low-frequency UI state         |
-| Rendering and controls | [`Game.tsx`](../src/components/Game.tsx), [`Scene.tsx`](../src/components/Scene.tsx), [`World.tsx`](../src/components/game/World.tsx), [`Hero.tsx`](../src/components/game/Hero.tsx) | Accessible DOM controls, scene loading, authored island and character placement |
-| Sound                  | [`melody.ts`](../src/domain/melody.ts), [`MelodyPlayer.ts`](../src/components/game/MelodyPlayer.ts), [`useMelody.ts`](../src/components/game/useMelody.ts)                           | Fixed cues, bounded Web Audio scheduling and lifecycle cleanup                  |
+| Concern                | Entry points                                                                                                                                                                         | Responsibility                                                                            |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| Pages and API          | [`src/app/`](../src/app/), [`route.ts`](../src/app/api/[...path]/route.ts)                                                                                                           | Creator, preview, gift and example routes; request validation and authorization           |
+| Creator flow           | [`Creator.tsx`](../src/components/Creator.tsx), [`GiftWrapping.tsx`](../src/components/GiftWrapping.tsx)                                                                             | Draft editing, status polling and dispatch recovery, approval and publication             |
+| Persistence            | [`schema.ts`](../src/server/schema.ts), [`db.ts`](../src/server/db.ts), [`repository.ts`](../src/server/repository.ts)                                                               | Records, migrations, quota accounting, job claims and snapshots                           |
+| Generation             | [`worker-entry.ts`](../src/server/worker-entry.ts), [`worker.ts`](../src/server/worker.ts), [`tripo.ts`](../src/server/tripo.ts)                                                     | Recoverable job steps and provider adapter; Workflow orchestration is in `src/workflows/` |
+| Assets and access      | [`storage.ts`](../src/server/storage.ts), [`security.ts`](../src/server/security.ts), [`cleanup.ts`](../src/server/cleanup.ts)                                                       | Image/model validation, private files, owner tokens and deletion                          |
+| Adventure rules        | [`src/domain/`](../src/domain/), [`store.ts`](../src/components/game/store.ts)                                                                                                       | Pure state transitions, shared configuration and low-frequency UI state                   |
+| Rendering and controls | [`Game.tsx`](../src/components/Game.tsx), [`Scene.tsx`](../src/components/Scene.tsx), [`World.tsx`](../src/components/game/World.tsx), [`Hero.tsx`](../src/components/game/Hero.tsx) | Accessible DOM controls, scene loading, authored island and character placement           |
+| Sound                  | [`melody.ts`](../src/domain/melody.ts), [`MelodyPlayer.ts`](../src/components/game/MelodyPlayer.ts), [`useMelody.ts`](../src/components/game/useMelody.ts)                           | Fixed cues, bounded Web Audio scheduling and lifecycle cleanup                            |
 
 `TripoProvider`, `AssetStorage` and `GenerationRepository` are small interfaces for their respective boundaries, not a multi-provider framework. [`env.ts`](../src/server/env.ts) selects example mode without a key, live mode with a key, or an explicitly enabled test mock. Mock mode is forbidden in production.
 
@@ -54,7 +54,7 @@ The main tables are defined in [`schema.ts`](../src/server/schema.ts):
 | `jobs`     | Input revision, provider task ID, status, lease and retry information            |
 | `gifts`    | Independently random token, version, immutable JSON snapshot and revocation flag |
 
-[`db.ts`](../src/server/db.ts) also creates `rate_limits`, lifetime `generation_usage`, `storage_gc` and migration bookkeeping. The idempotent migration runs when the database module loads and is also exposed through `npm run db:migrate`. SQLite uses WAL, a five-second busy timeout and immediate transactions for quota/job creation, lease claims, publication and deletion.
+[`db.ts`](../src/server/db.ts) also creates `rate_limits`, lifetime `generation_usage`, `storage_gc` and migration bookkeeping. Idempotent initialization runs on the first database operation and is also exposed through `npm run db:migrate`. Transactions acquire a shared PostgreSQL advisory lock for quota/job creation, lease claims, publication and deletion. Nested operations share the same connection through AsyncLocalStorage. `workflow_dispatch` records enqueue claims; deterministic Workflow hooks and fenced job leases protect duplicate delivery.
 
 [`GiftConfigSchema`](../src/domain/config.ts) validates draft and snapshot reads. Defaults are applied in memory, so reading older JSON does not rewrite it. For example, the optional dedication defaults to an empty string; non-empty values are trimmed and limited to 60 characters. Publishing copies config and asset IDs into the next snapshot version. Later draft edits or replacement assets cannot overwrite an already shared version.
 
@@ -66,7 +66,7 @@ The uploaded file is decoded and re-encoded as a metadata-stripped PNG. The stor
 
 Gift tokens are independently random bearer links: anyone holding an active link can read its snapshot. Asset requests using a gift token must match both the gift's project and an exact asset ID in its snapshot. Other private asset reads require project ownership. Gift payloads and private assets use `no-store` responses; file paths are server-generated.
 
-Deleting a project atomically removes its database access and queues its files for deletion. Active worker leases temporarily block deletion. The worker retries queued unlinks, while lifetime generation counts remain to prevent delete-and-regenerate quota resets. Local deletion does not establish provider-side deletion. Creator sessions do not provide account recovery.
+Deleting a project atomically removes its database access and deletes its stored asset bytes. Active worker leases temporarily block deletion. A retained cleanup helper handles any queued storage cleanup, while lifetime generation counts remain to prevent delete-and-regenerate quota resets. Local deletion does not establish provider-side deletion. Creator sessions do not provide account recovery.
 
 ## Generation and recovery
 
@@ -74,7 +74,7 @@ Deleting a project atomically removes its database access and queues its files f
 pending → uploading → submitting → queued / generating → downloading → ready
 ```
 
-[`requestGeneration`](../src/server/repository.ts) scopes the caller's idempotency key to the project and reuses an active attempt for the same drawing revision. Creating a new attempt and consuming quota happen in one immediate transaction. Both the per-owner and global lifetime counts are checked against `GENERATION_QUOTA`.
+[`requestGeneration`](../src/server/repository.ts) scopes the caller's idempotency key to the project and reuses an active attempt for the same drawing revision. Creating a new attempt and consuming quota happen in one transaction. Both the per-owner and global lifetime counts are checked against `GENERATION_QUOTA`.
 
 [`processOne`](../src/server/worker.ts) claims due jobs with a 120-second lease and a random fencing token. Subsequent job updates must match that token. Provider requests time out after 30 seconds and model downloads after 45 seconds, each shorter than the lease. The worker stores the actual provider status separately from the application's normalized status.
 

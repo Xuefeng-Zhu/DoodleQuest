@@ -1,3 +1,5 @@
+> Superseded deployment proposal: the current branch targets [Vercel + Neon](VERCEL.md). No Render service was created. The disk-based instructions below describe the earlier SQLite architecture.
+
 # Render deployment
 
 The deployment definition is [render.yaml](../render.yaml). It uses one native Node.js web service in Oregon and a 1 GB persistent disk mounted at `/var/data`. Both the Next.js server and durable worker run inside that service. They must share the same local SQLite database and protected asset directory; do not create a separate Render worker with another disk.

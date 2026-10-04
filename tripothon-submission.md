@@ -40,7 +40,7 @@ DoodleQuest is a working local prototype with saved drafts, explicit hero approv
 
 ## How Tripo contributes — paste-ready
 
-Tripo supplies the personalized 3D hero. The server uploads the drawing reference, submits an image-to-model task, retains the provider task ID and polls it through a separate durable worker. Completed GLBs are downloaded into protected local storage, validated against resource limits, normalized for the game and presented for creator approval. That stored character is then used in the recipient's adventure.
+Tripo supplies the personalized 3D hero. The server uploads the drawing reference, submits an image-to-model task, retains the provider task ID and polls it through durable job steps. Completed GLBs are downloaded into protected PostgreSQL storage, validated against resource limits, normalized for the game and presented for creator approval. That stored character is then used in the recipient's adventure.
 
 Two successful live generations are represented in the saved local verification records. The corrected Mom & Dad walkthrough reuses the second generated character without another generation. Its source is an OpenAI image-generated illustration of a generic adult couple, created for this demonstration; the child-to-parents story is fictional. The playable world, quest rules, scenery, stationery and synthesized melody are authored application content. The bundled no-key Pip example is procedural and is labeled separately.
 
@@ -57,11 +57,11 @@ Optional Tripo rigging and animation are implemented and covered by a skinned te
 
 ## Architecture and build process
 
-Next.js and React provide the creator workflow and server routes. React Three Fiber and Three.js render the world. A deterministic TypeScript quest model drives the same actions from scene and accessible controls. SQLite with Drizzle stores sessions, drafts, tasks and gift snapshots. A separate Node worker handles long-running Tripo tasks and file cleanup. The web process and worker require one persistent node with shared local storage.
+Next.js and React provide the creator workflow and server routes. React Three Fiber and Three.js render the world. A deterministic TypeScript quest model drives the same actions from scene and accessible controls. Neon PostgreSQL with Drizzle stores sessions, drafts, tasks, gift snapshots and private asset bytes. Vercel Workflows schedules long-running Tripo tasks with saved provider IDs, transaction-protected leases and bounded retries. Local tests use embedded PostgreSQL.
 
 Codex assisted with implementing the product flow, the Tripo adapter and worker, responsive interfaces, automated tests and visual iteration. Focused Git commits and [dated verification notes](docs/COMPLETION.md) record the work. This preparation reconciles those notes with saved provider and recording evidence; it does not expose private Codex conversations.
 
-**Built with:** TypeScript, Next.js, React, React Three Fiber, Three.js, Tripo API, Node.js, SQLite, Drizzle ORM, Vitest, Playwright, Codex.
+**Built with:** TypeScript, Next.js, React, React Three Fiber, Three.js, Tripo API, Node.js, Vercel, Neon PostgreSQL, Drizzle ORM, Vitest, Playwright, Codex.
 
 ## What to show the judges
 
