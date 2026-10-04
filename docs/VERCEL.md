@@ -2,9 +2,9 @@
 
 Status on October 3, 2026: [DoodleQuest is deployed](https://doodlequest-six.vercel.app) in example mode. Hosted HTTPS checks passed for Neon connectivity, sample drafts, approval, publication, isolated ownership, snapshot immutability, drawing-byte persistence across redeployment, and revocation. The rendered 3D example was visually verified and its story completed through the accessible controls to the letter. See [dated hosted verification](COMPLETION.md#vercel-and-neon-hosted-verification--2026-10-03).
 
-The deployment uses Vercel Hobby and the dedicated Neon Free resource `neon-coffee-globe`, connected to DoodleQuest's production environment only. The deployed application revision is `37cac02` from `codex/vercel-neon-deployment`; [PR #1](https://github.com/Xuefeng-Zhu/DoodleQuest/pull/1) remains open and `main` has not been merged. No paid tier was selected and no Tripo credentials were transferred or provider calls made.
+The deployment uses Vercel Hobby and the dedicated Neon Free resource `neon-coffee-globe`, connected to DoodleQuest's production environment only. The deployed application revision is `37cac02`, now included in `main` through [PR #1](https://github.com/Xuefeng-Zhu/DoodleQuest/pull/1), merged at `56c6344`. No paid tier was selected and no Tripo credentials were transferred or provider calls made.
 
-The authenticated Vercel CLI deployed a clean Git archive of `37cac02`; Git auto-deployment is not configured for this project. Future updates can use the CLI again or intentionally connect the tested source branch. Pushing this PR branch alone does not update production.
+The authenticated Vercel CLI deployed a clean Git archive of `37cac02`; Git auto-deployment is not configured for this project. Future updates can use the CLI again or intentionally connect the tested source branch. Pushing to GitHub alone does not update production.
 
 ## Configuration
 

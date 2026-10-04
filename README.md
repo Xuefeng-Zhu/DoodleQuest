@@ -12,7 +12,7 @@ Create a character, write a personal note, and share an unlisted adventure. The 
 
 Use **Node.js 24 and npm**, matching the repository's Docker image. Run these commands from the repository root:
 
-The deployed PostgreSQL/Workflow revision is `37cac02` on `codex/vercel-neon-deployment`. Until [PR #1](https://github.com/Xuefeng-Zhu/DoodleQuest/pull/1) is merged, use that branch when reproducing the hosted version from a fresh clone.
+The deployed PostgreSQL/Workflow application revision is `37cac02`. [PR #1](https://github.com/Xuefeng-Zhu/DoodleQuest/pull/1) merged that implementation and its verification docs into `main` at `56c6344`; use `main` for a fresh clone.
 
 ```sh
 npm ci

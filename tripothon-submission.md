@@ -1,12 +1,12 @@
 # DoodleQuest — Tripothon S1 submission package
 
-Prepared locally on October 3, 2026. **Not entered in the event.** Target: **Game + Tripo**. The user confirmed Tripothon S1; team details, agreements and the event entry remain for review. The source repository is now public.
+Prepared on October 3, 2026. **A remote Game + Tripo draft has been opened; it is not a final event entry.** Team details, agreements and the remaining form need review. The public source and deployment implementation are merged into `main`.
 
 ## Event and required materials
 
 The [official event page](https://developers.tripo3d.ai/en/events/tripothon-s1), checked October 3, lists a playable demo, actual screen walkthrough and visual asset board as required. A public build log is optional. Tool entries require actual use. The live [submission portal](https://activity.tripo3d.ai/en/submit) displays **October 5, 2026, 23:59 AoE (UTC−12)**, equivalent to **October 6, 2026, 04:59 PDT**. Submit well before the cutoff.
 
-The portal's track picker was inspected. Later form fields, upload limits, registration requirements and agreements have **not** been inspected. The copy below is prepared material, not a claim about exact field names or limits. Opening a remote draft requires approval; no project was created during this preparation.
+The authorized remote draft has Game selected as its Direction Track and Tripo as its Tool Track. Step 1 requires the team lead's full name, email and role; an optional team name allows 60 characters. Teams may have 1–3 people. The remaining Project, Media & Demo, Awards & Declarations, and Review steps stay locked until Team is complete. The copy below remains prepared material until those actual fields and limits can be inspected. The private edit link is kept out of the public repository.
 
 ## Title and short pitch
 
@@ -81,7 +81,7 @@ Our presentation choices:
 
 **Public demo:** [DoodleQuest](https://doodlequest-six.vercel.app), running on Vercel Hobby with Neon Free in example mode. The procedural Pip example is publicly playable; paid Tripo generation is disabled.
 
-**Repository:** [Xuefeng-Zhu/DoodleQuest](https://github.com/Xuefeng-Zhu/DoodleQuest) — **public** at the user's request, with anonymous GitHub access verified. Source and reviewed media are accessible to judges. No root license file is currently present; making the repository public does not establish a reuse license. The deployed application revision is `37cac02` on `codex/vercel-neon-deployment`; [PR #1](https://github.com/Xuefeng-Zhu/DoodleQuest/pull/1) remains open and `main` is not merged.
+**Repository:** [Xuefeng-Zhu/DoodleQuest](https://github.com/Xuefeng-Zhu/DoodleQuest) — **public** at the user's request, with anonymous GitHub access verified. Source and reviewed media are accessible to judges. No root license file is currently present; making the repository public does not establish a reuse license. The deployed application revision is `37cac02`, merged into `main` at `56c6344` through [PR #1](https://github.com/Xuefeng-Zhu/DoodleQuest/pull/1).
 
 1. Open the [Pip example](https://doodlequest-six.vercel.app/example), start the gift and follow the scene or accessible controls to the bell gate.
 2. Ring circle → triangle → star, collect the star, deliver it to the mailbox and open the letter. Replay is available. The rendered 3D example and this complete story were verified in the hosted browser.
@@ -89,7 +89,7 @@ Our presentation choices:
 
 Local fallback from the public source repository:
 
-1. Use Node.js 24 and npm. Until PR #1 is merged, check out `codex/vercel-neon-deployment` to reproduce the hosted version. In that fresh checkout, run `npm ci`.
+1. Use Node.js 24 and npm. Check out `main`, which includes the hosted implementation, and run `npm ci`.
 2. Copy `.env.example` to `.env` only when no local environment file exists. Leave credentials blank for procedural example mode.
 3. Run `npm run db:migrate`, `npm run db:seed`, then `npm run dev`.
 4. Open `http://localhost:3000/example`. Start the gift and follow the visible controls to the bell gate. Ring circle → triangle → star, collect the star, deliver it to the mailbox and open the letter. Replay is available.
@@ -131,7 +131,8 @@ Show the source artwork, generated hero preview, personalized gift opening, star
 - [ ] Resolve playable judge access to the recorded Tripo hero for the proposed tool-track entry.
 - [x] Make the source repository and reviewed media public; anonymous repository access verified.
 - [ ] Provide the walkthrough and asset board in the destinations or upload fields required by the event portal.
-- [ ] Approve opening a remote draft; inspect the remaining form and adapt this copy to its actual limits.
+- [x] Open the authorized remote draft with Game + Tripo selected.
+- [ ] Complete team details, inspect the remaining form and adapt this copy to its actual limits.
 - [ ] Confirm team details, artwork/output rights and any required agreements in the actual form.
 - [ ] Review the completed remote entry and authorize its final submission before the deadline.
 
