@@ -1,6 +1,7 @@
 import {
   accessSync,
   constants,
+  mkdirSync,
   readFileSync,
   renameSync,
   unlinkSync,
@@ -16,6 +17,9 @@ export function writeWorkerHeartbeat(
   runtimeId: string,
   now = Date.now(),
 ) {
+  // External PostgreSQL does not initialize a local data directory. The
+  // standalone worker still needs one for its local readiness heartbeat.
+  mkdirSync(dataDirectory, { recursive: true, mode: 0o700 });
   const target = path.join(dataDirectory, heartbeatName);
   const temporary = `${target}.${process.pid}.tmp`;
   try {

@@ -210,68 +210,129 @@ export function publish(p: Project) {
     return gift;
   });
 }
-export async function projectView(p: Project) {
-  await ready();
-  const [motion] = await db
-    .select()
+/** One owner-scoped snapshot, with a fixed query count regardless of draft count. */
+export function ownerProjectViews(owner: string) {
+  return transaction(async () => {
+    const drafts = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.owner, owner))
+      .orderBy(desc(projects.updatedAt));
+    return projectViews(drafts);
+  });
+}
+
+export function projectView(p: Project) {
+  return transaction(async () => {
+    // Read the project and its jobs under the workers' commit lock so a ready
+    // job cannot be paired with the caller's pre-completion model or approval.
+    const [view] = await projectViews([await currentProject(p)]);
+    return view;
+  });
+}
+
+// Called only inside the transaction that selected the authorized projects.
+async function projectViews(drafts: Project[]) {
+  if (!drafts.length) return [];
+  const ids = drafts.map((p) => p.id);
+  const latestMotions = await db
+    .selectDistinctOn([motionJobs.projectId])
     .from(motionJobs)
-    .where(eq(motionJobs.projectId, p.id))
-    .orderBy(desc(motionJobs.createdAt))
-    .limit(1);
-  const [job] = await db
-    .select()
+    .where(inArray(motionJobs.projectId, ids))
+    .orderBy(
+      asc(motionJobs.projectId),
+      desc(motionJobs.createdAt),
+      desc(motionJobs.id),
+    );
+  const latestJobs = await db
+    .selectDistinctOn([jobs.projectId])
     .from(jobs)
-    .where(eq(jobs.projectId, p.id))
-    .orderBy(desc(jobs.createdAt))
-    .limit(1);
-  const drawing = await originalAsset(p);
+    .where(inArray(jobs.projectId, ids))
+    .orderBy(asc(jobs.projectId), desc(jobs.createdAt), desc(jobs.id));
+  const inputIds = drafts.flatMap((p) => (p.inputAsset ? [p.inputAsset] : []));
+  const inputs = inputIds.length
+    ? await db
+        .select({
+          id: assets.id,
+          projectId: assets.projectId,
+          metadata: assets.metadata,
+        })
+        .from(assets)
+        .where(
+          and(inArray(assets.projectId, ids), inArray(assets.id, inputIds)),
+        )
+    : [];
   const shares = await db
     .select({
+      projectId: gifts.projectId,
       id: gifts.id,
       token: gifts.token,
       version: gifts.version,
       revoked: gifts.revoked,
     })
     .from(gifts)
-    .where(eq(gifts.projectId, p.id));
-  return {
-    ...p,
-    owner: undefined,
-    config: GiftConfigSchema.parse(JSON.parse(p.config)),
-    job: job
-      ? {
-          id: job.id,
-          status: job.status,
-          providerStatus: job.providerStatus,
-          providerId: job.providerId,
-          progress: job.progress,
-          lastError: job.lastError,
-          createdAt: job.createdAt,
-          attempts: job.attempts,
-          inputRevision: job.inputRevision,
-          finalAsset: job.finalAsset,
-          model: job.model,
-        }
-      : null,
-    motionJob: motion
-      ? {
-          id: motion.id,
-          status: motion.status,
-          stage: motion.stage,
-          progress: motion.progress,
-          lastError: motion.lastError,
-          inputAsset: motion.inputAsset,
-          inputRevision: motion.inputRevision,
-          finalAsset: motion.finalAsset,
-          rigType: motion.rigType,
-          createdAt: motion.createdAt,
-          attempts: motion.attempts,
-        }
-      : null,
-    drawingUrl: drawing ? `/api/assets/${drawing}` : null,
-    modelUrl: p.modelAsset ? `/api/assets/${p.modelAsset}` : null,
-    shares,
-  };
+    .where(inArray(gifts.projectId, ids));
+  const motionByProject = new Map(
+    latestMotions.map((motion) => [motion.projectId, motion]),
+  );
+  const jobByProject = new Map(latestJobs.map((job) => [job.projectId, job]));
+  const inputById = new Map(inputs.map((input) => [input.id, input]));
+  const sharesByProject = new Map<
+    string,
+    Omit<(typeof shares)[number], "projectId">[]
+  >();
+  for (const { projectId, ...share } of shares) {
+    const projectShares = sharesByProject.get(projectId) || [];
+    projectShares.push(share);
+    sharesByProject.set(projectId, projectShares);
+  }
+  return drafts.map((p) => {
+    const motion = motionByProject.get(p.id);
+    const job = jobByProject.get(p.id);
+    const input = p.inputAsset ? inputById.get(p.inputAsset) : undefined;
+    const drawing =
+      input?.projectId === p.id
+        ? JSON.parse(input.metadata).originalId || p.inputAsset
+        : null;
+    return {
+      ...p,
+      owner: undefined,
+      config: GiftConfigSchema.parse(JSON.parse(p.config)),
+      job: job
+        ? {
+            id: job.id,
+            status: job.status,
+            providerStatus: job.providerStatus,
+            providerId: job.providerId,
+            progress: job.progress,
+            lastError: job.lastError,
+            createdAt: job.createdAt,
+            attempts: job.attempts,
+            inputRevision: job.inputRevision,
+            finalAsset: job.finalAsset,
+            model: job.model,
+          }
+        : null,
+      motionJob: motion
+        ? {
+            id: motion.id,
+            status: motion.status,
+            stage: motion.stage,
+            progress: motion.progress,
+            lastError: motion.lastError,
+            inputAsset: motion.inputAsset,
+            inputRevision: motion.inputRevision,
+            finalAsset: motion.finalAsset,
+            rigType: motion.rigType,
+            createdAt: motion.createdAt,
+            attempts: motion.attempts,
+          }
+        : null,
+      drawingUrl: drawing ? `/api/assets/${drawing}` : null,
+      modelUrl: p.modelAsset ? `/api/assets/${p.modelAsset}` : null,
+      shares: sharesByProject.get(p.id) || [],
+    };
+  });
 }
 
 async function currentProject(p: Project): Promise<Project> {

@@ -35,6 +35,26 @@ afterEach(() => {
 });
 
 describe("read-only runtime health", () => {
+  it("starts readiness with a fresh nested data directory and no local database", () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "dq-health-fresh-"));
+    directories.push(root);
+    const dataDirectory = path.join(root, "fresh", "worker");
+    const readiness = workerReadiness(dataDirectory, "external-postgres-boot");
+
+    readiness.pulse();
+
+    const record = JSON.parse(
+      readFileSync(path.join(dataDirectory, "worker-heartbeat.json"), "utf8"),
+    );
+    expect(record.runtimeId).toBe("external-postgres-boot");
+    expect(record.updatedAt).toBeGreaterThan(0);
+    expect(readdirSync(dataDirectory)).toEqual(["worker-heartbeat.json"]);
+    readiness.failed();
+    expect(readdirSync(dataDirectory)).toEqual([]);
+    readiness.succeeded();
+    expect(readdirSync(dataDirectory)).toEqual(["worker-heartbeat.json"]);
+  });
+
   it("withholds timer heartbeats after work fails until a complete iteration recovers", () => {
     const options = setup();
     const readiness = workerReadiness(options.dataDirectory, options.runtimeId);

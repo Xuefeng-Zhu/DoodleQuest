@@ -178,6 +178,26 @@ describe("generation reliability", () => {
     ).toBe("ready");
     expect((await owned(p.id, p.owner)).modelAsset).toBeTruthy();
   });
+  it("returns the completed model with its ready job when the caller holds an older draft", async () => {
+    const p = await draft(),
+      j = await requestGeneration(p, randomUUID()),
+      api = provider();
+    expect(p.modelAsset).toBeNull();
+    await processOne(api, repository, undefined, j.id);
+    await due(j.id);
+    await processOne(
+      api,
+      repository,
+      () => readFile("tests/fixtures/mock.glb"),
+      j.id,
+    );
+
+    const view = await projectView(p);
+    expect(view.job).toMatchObject({ id: j.id, status: "ready" });
+    expect(view.job?.finalAsset).toBeTruthy();
+    expect(view.modelAsset).toBe(view.job?.finalAsset);
+    expect(view.modelUrl).toBe(`/api/assets/${view.job?.finalAsset}`);
+  });
   it("never automatically retries an uncertain paid submission", async () => {
     const p = await draft(),
       j = await requestGeneration(p, randomUUID()),
