@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="DoodleQuest submission gallery: an original project illustration, an actual Tripo-generated hero, and a personalized playable gift for Mom and Dad."
+    />
+    <title>DoodleQuest — Your drawing deserves a world</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: #f5f1e7;
+        --card: #fffdf7;
+        --forest: #294a3d;
+        --muted: #687566;
+        --line: #d8ddcc;
+        --sage: #e4ead8;
+        --gold: #ba8a49;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 48px 32px 30px;
+        background: var(--paper);
+        color: var(--forest);
+        font:
+          16px/1.6 -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+      main {
+        max-width: 1440px;
+        margin: auto;
+      }
+      a {
+        color: inherit;
+        text-underline-offset: 4px;
+      }
+      a:focus-visible {
+        outline: 3px solid var(--gold);
+        outline-offset: 5px;
+      }
+      .masthead {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+      }
+      .brand {
+        font:
+          600 30px/1.2 Georgia,
+          serif;
+        letter-spacing: -1px;
+      }
+      .edition {
+        padding: 7px 13px;
+        border: 1px solid var(--line);
+        border-radius: 30px;
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 650;
+        letter-spacing: 1.6px;
+        text-transform: uppercase;
+      }
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+      h1 {
+        max-width: 1180px;
+        margin: 33px 0 12px;
+        font:
+          400 clamp(42px, 5.3vw, 76px)/1.05 Georgia,
+          serif;
+        letter-spacing: -2.7px;
+      }
+      .subtitle {
+        font-size: 23px;
+      }
+      .intro {
+        max-width: 960px;
+        color: var(--muted);
+        margin-top: 12px;
+      }
+      header {
+        padding-bottom: 32px;
+        border-bottom: 1px solid var(--line);
+        margin-bottom: 32px;
+      }
+      .origin {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 22px;
+      }
+      figure {
+        margin: 0;
+        padding: 15px;
+        border: 1px solid var(--line);
+        border-radius: 15px;
+        background: var(--card);
+        overflow: hidden;
+      }
+      .image-link {
+        display: block;
+        border-radius: 7px;
+        overflow: hidden;
+        background: #ebeedd;
+      }
+      img {
+        display: block;
+        width: 100%;
+        object-fit: contain;
+      }
+      .origin img {
+        height: 385px;
+      }
+      .origin .drawing {
+        background: #fff;
+      }
+      figcaption {
+        padding: 18px 8px 8px;
+      }
+      h3 {
+        font:
+          400 25px/1.25 Georgia,
+          serif;
+        letter-spacing: -0.45px;
+      }
+      .number {
+        color: var(--gold);
+        font: 600 11px/1 sans-serif;
+        letter-spacing: 1.5px;
+        display: block;
+        margin-bottom: 9px;
+      }
+      figcaption p {
+        margin-top: 9px;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.6;
+      }
+      .section-heading {
+        padding: 43px 0 22px;
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 20px;
+      }
+      h2 {
+        font:
+          400 35px/1.2 Georgia,
+          serif;
+        letter-spacing: -0.9px;
+      }
+      .section-heading p {
+        max-width: 490px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .journey {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 22px;
+      }
+      .journey img {
+        aspect-ratio: 3 / 2;
+        background: #0b140f;
+      }
+      footer {
+        margin-top: 34px;
+        border-top: 1px solid var(--line);
+        padding: 25px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .footer-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+      .footer-links {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        font-size: 14px;
+      }
+      footer p + p {
+        margin-top: 7px;
+      }
+      .note {
+        margin-top: 16px;
+      }
+      @media (max-width: 900px) {
+        .origin {
+          grid-template-columns: 1fr;
+        }
+        .origin img {
+          height: auto;
+          max-height: 480px;
+        }
+        .origin .drawing {
+          max-height: 380px;
+        }
+        .section-heading {
+          display: block;
+        }
+        .section-heading p {
+          margin-top: 10px;
+          max-width: none;
+        }
+      }
+      @media (max-width: 600px) {
+        body {
+          padding: 24px 16px;
+        }
+        .masthead {
+          align-items: start;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .brand {
+          font-size: 28px;
+        }
+        h1 {
+          letter-spacing: -1.5px;
+          margin-top: 25px;
+        }
+        .subtitle {
+          font-size: 20px;
+        }
+        .intro {
+          font-size: 14px;
+        }
+        .journey {
+          grid-template-columns: 1fr;
+        }
+        h2 {
+          font-size: 30px;
+        }
+        figure {
+          padding: 10px;
+        }
+        h3 {
+          font-size: 24px;
+        }
+        figcaption {
+          padding: 16px 5px 7px;
+        }
+      }
+      @media print {
+        body {
+          padding: 0;
+        }
+        a {
+          text-decoration: none;
+        }
+        figure {
+          break-inside: avoid;
+        }
+        .footer-links {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div class="masthead">
+          <p class="brand">DoodleQuest.</p>
+          <p class="edition">Tripothon S1 · Submission gallery</p>
+        </div>
+        <h1>Your drawing deserves a world.</h1>
+        <p class="subtitle">A playable gift for Mom &amp; Dad.</p>
+        <p class="intro">
+          A drawing becomes a Tripo-generated 3D hero, then carries a personal
+          message through a small, authored adventure. From “Your little
+          artist,” with love.
+        </p>
+      </header>
+      <section
+        class="origin"
+        aria-label="From source illustration to generated hero"
+      >
+        <figure>
+          <a class="image-link" href="source-drawing.png"
+            ><img
+              class="drawing"
+              src="source-drawing.png"
+              width="1254"
+              height="1254"
+              alt="Project-created illustration of two fictional adults representing Mom and Dad"
+          /></a>
+          <figcaption>
+            <span class="number">01 / THE SOURCE</span>
+            <h3>It begins with a picture.</h3>
+            <p>
+              Original project sample made with OpenAI image generation:
+              fictional adults, not an actual child’s drawing.
+            </p>
+          </figcaption>
+        </figure>
+        <figure>
+          <a class="image-link" href="hero-preview.jpg"
+            ><img
+              src="hero-preview.jpg"
+              width="1440"
+              height="617"
+              alt="Actual DoodleQuest preview with the source illustration beside the Tripo-generated 3D Mom and Dad hero"
+          /></a>
+          <figcaption>
+            <span class="number">02 / MADE WITH TRIPO</span>
+            <h3>Meet the hero of their little world.</h3>
+            <p>
+              The actual generated 3D model, shown beside its source in the
+              local app. The island, interactions, and gift story are authored
+              by DoodleQuest.
+            </p>
+          </figcaption>
+        </figure>
+      </section>
+      <div class="section-heading">
+        <h2>Make it personal. Let them discover it.</h2>
+        <p>
+          Real recorded screens follow the same gift from the creator’s words to
+          the recipient’s letter. Open any image to view it at full size.
+        </p>
+      </div>
+      <section class="journey" aria-label="The personalized gift journey">
+        <figure>
+          <a class="image-link" href="personalization.jpg"
+            ><img
+              src="personalization.jpg"
+              width="1440"
+              height="960"
+              alt="Creator enters Mom and Dad, Your little artist, and the dedication You make my world brighter"
+          /></a>
+          <figcaption>
+            <span class="number">03 / THEIR WORDS</span>
+            <h3>A little thought to carry.</h3>
+            <p>
+              Choose the recipient, sign the gift, and add a saying: “You make
+              my world brighter.”
+            </p>
+          </figcaption>
+        </figure>
+        <figure>
+          <a class="image-link" href="recipient-opening.jpg"
+            ><img
+              src="recipient-opening.jpg"
+              width="1440"
+              height="960"
+              alt="Recipient opening screen addressed to Mom and Dad with the same dedication and the authored floating island"
+          /></a>
+          <figcaption>
+            <span class="number">04 / THE INVITATION</span>
+            <h3>A small adventure, with a big heart.</h3>
+            <p>
+              Mom &amp; Dad open a world made for them. The generated hero
+              belongs in a gentle, playable scene.
+            </p>
+          </figcaption>
+        </figure>
+        <figure>
+          <a class="image-link" href="letter.jpg"
+            ><img
+              src="letter.jpg"
+              width="1440"
+              height="960"
+              alt="The recipient’s opened letter for Mom and Dad, thanking them for every hug, bedtime story, and adventure"
+          /></a>
+          <figcaption>
+            <span class="number">05 / THE LETTER</span>
+            <h3>Something only you would say.</h3>
+            <p>
+              The adventure ends with the personal note, kept in the creator’s
+              own words.
+            </p>
+          </figcaption>
+        </figure>
+        <figure>
+          <a class="image-link" href="signature.jpg"
+            ><img
+              src="signature.jpg"
+              width="1440"
+              height="960"
+              alt="Letter signature Your little artist, the carried dedication, and an optional drawing keepsake"
+          /></a>
+          <figcaption>
+            <span class="number">06 / THE KEEPSAKE</span>
+            <h3>All this way, just for you.</h3>
+            <p>
+              A warm signature, the same little saying, and the drawing that
+              started it all.
+            </p>
+          </figcaption>
+        </figure>
+      </section>
+      <footer>
+        <div class="footer-row">
+          <p><strong>DoodleQuest</strong> · Your drawing deserves a world.</p>
+          <nav class="footer-links" aria-label="Submission evidence">
+            <a href="walkthrough.mp4">Watch the silent walkthrough</a
+            ><a href="asset-board.png">Download this board</a>
+          </nav>
+        </div>
+        <p class="note">
+          Local prototype · Actual recorded screens · Silent walkthrough
+          supplied separately · No live rigging claim.
+        </p>
+        <p>
+          Frames are preserved in full, including recording captions and
+          letterboxing. The source illustration and 3D hero have different
+          origins, labeled above.
+        </p>
+      </footer>
+    </main>
+  </body>
+</html>

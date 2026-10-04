@@ -1,0 +1,195 @@
+{
+  "checkedAt": "2026-10-04T00:41:43.975943+00:00",
+  "scope": "Local preparation audit. Provider and browser behavior were captured on 2026-10-02 America/Los_Angeles; local artifact integrity and database aggregates were rechecked on 2026-10-03. No new provider calls or deployment.",
+  "liveGeneration": {
+    "successfulStoredJobs": 2,
+    "localGenerationReservations": 2,
+    "providerModel": "v3.1-20260211",
+    "recordedCreditsPerJob": 30,
+    "creditsEvidence": "Historical local verification records, not a fresh provider billing query.",
+    "models": [
+      {
+        "subject": "Pip bunny",
+        "inputOrigin": "Original repository illustration",
+        "bytes": 445404,
+        "triangles": 19202,
+        "sha256": "b773642fb5f4cb1a82ce11471b3395caab638d31320faabadd0a7a09e35bd18b",
+        "localHashVerified": true
+      },
+      {
+        "subject": "Generic Mom and Dad pair, combined model",
+        "inputOrigin": "OpenAI image-generated fictional adult illustration created for this project; not an actual child drawing or photograph.",
+        "bytes": 793396,
+        "triangles": 19796,
+        "sha256": "b626ccdc65b2345539c064b004c2b265f41eed81aeac22743105ee3c97c59ca8",
+        "localHashVerified": true
+      }
+    ],
+    "validation": "Stored GLB metadata records successful validation; both stored files match recorded sizes and hashes.",
+    "motionJobs": 0
+  },
+  "correctedDemo": {
+    "recipient": "Mom & Dad",
+    "sender": "Your little artist",
+    "dedication": "You make my world brighter",
+    "narrative": "Authored example of a child-to-parents gift; not evidence of a real child participant.",
+    "model": "The second live Tripo model (Mom and Dad) is reused.",
+    "additionalGenerations": 0,
+    "additionalGenerationCredits": 0,
+    "publishedVersion": 2,
+    "publicationScope": "Local development server",
+    "historicallyVerified": [
+      "approval",
+      "personalization",
+      "wrapping and link copy",
+      "separate recipient browser",
+      "drawing reveal",
+      "bell puzzle",
+      "star collection",
+      "mailbox delivery",
+      "letter and child signature"
+    ],
+    "recordedConsoleErrors": 0,
+    "knownConsoleWarning": "THREE.Clock deprecation"
+  },
+  "walkthrough": {
+    "file": "walkthrough.mp4",
+    "durationSeconds": 87.333333,
+    "bytes": 2487571,
+    "sha256": "cdebbfd8fc23fbc812efaccc4b1dd16b7e16ed8bf55470eeb70e310f8f41679a",
+    "width": 1440,
+    "height": 960,
+    "codec": "h264",
+    "pixelFormat": "yuv420p",
+    "encodedFps": 24,
+    "audioStreams": 0,
+    "fullDecodeErrors": 0,
+    "sourceVideoSha256": "b492bb89339e73be2220daf86a7ae29a3dbcc66cbf668f8aca62276986660a54",
+    "sourceCombinedManifestSha256": "a6855fabeb707c50046a7977ab37636449bd25c6dd3ddf76f2827663b9c7f481",
+    "sourceFrames": 538,
+    "originalGenerationAndApprovalSourceFrames": 217,
+    "correctedPersonalizationAndRecipientSourceFrames": 321,
+    "newSourceTimelineSeconds": 64.65,
+    "captureMethod": "Actual local-browser screenshots sampled at approximately 5 fps, assembled without motion interpolation.",
+    "editing": "Tool-idle gaps removed; generation wait visibly labeled at 8x; final still held 2.5 seconds. This shareable copy adds opaque local-gift-link redactions only, with no further cuts or timing changes.",
+    "phases": [
+      {
+        "phase": "upload",
+        "start": 0.0,
+        "end": 7.323999999999997,
+        "speed": 1.0,
+        "sourceSeconds": 7.323999999999997,
+        "frames": 36
+      },
+      {
+        "phase": "generation",
+        "start": 7.323999999999997,
+        "end": 10.703999999999946,
+        "speed": 8.0,
+        "sourceSeconds": 27.040000000000042,
+        "frames": 134
+      },
+      {
+        "phase": "approval",
+        "start": 10.703999999999946,
+        "end": 20.16499999999996,
+        "speed": 1.0,
+        "sourceSeconds": 9.460999999999999,
+        "frames": 47
+      },
+      {
+        "phase": "personalization",
+        "start": 20.16499999999996,
+        "end": 31.01699999999998,
+        "speed": 1.0,
+        "sourceSeconds": 10.852,
+        "frames": 54
+      },
+      {
+        "phase": "wrapping",
+        "start": 31.01699999999998,
+        "end": 41.211999999999996,
+        "speed": 1.0,
+        "sourceSeconds": 10.195000000000002,
+        "frames": 50
+      },
+      {
+        "phase": "recipient",
+        "start": 41.211999999999996,
+        "end": 87.31499999999964,
+        "speed": 1.0,
+        "sourceSeconds": 46.10300000000007,
+        "frames": 217
+      }
+    ],
+    "privacyRedactions": [
+      {
+        "seconds": [27.55, 31.25],
+        "rectangle": [775, 415, 285, 36]
+      },
+      {
+        "seconds": [30.9, 31.6],
+        "rectangle": [775, 633, 285, 38]
+      },
+      {
+        "seconds": [35.0, 41.4],
+        "rectangle": [710, 590, 435, 40]
+      }
+    ]
+  },
+  "privacy": {
+    "excluded": [
+      "credentials and access codes",
+      "raw provider task and asset identifiers",
+      "raw gift URLs and bearer tokens",
+      "SQLite database and runtime assets",
+      "raw verification manifests with private local URLs"
+    ],
+    "review": "All 538 original source frames were scanned by local macOS Vision OCR for URL and credential patterns. Detected gift links were covered in the shareable video. Nine before/during/after boundary frames and all 344 encoded frames spanning 27.3\u201341.6 seconds passed a second OCR scan with no URL or token-pattern matches. Key masked scenes and all six copied still images were visually reviewed. OCR is supplementary inspection, not a formal secrecy guarantee.",
+    "originalSourceFramesScanned": 538,
+    "redactedEncodedFramesScanned": 344,
+    "redactedBoundaryFramesScanned": 9,
+    "detectedSensitivePatternsAfterRedaction": 0
+  },
+  "unverified": [
+    "hosted HTTPS deployment and public playable URL",
+    "Tripo rigging and animation output",
+    "physical phone and GPU performance",
+    "physical speaker playback",
+    "Safari and Firefox",
+    "actual assistive-technology behavior",
+    "hackathon acceptance and submission"
+  ],
+  "artifacts": [
+    {
+      "file": "source-drawing.png",
+      "bytes": 1622578,
+      "sha256": "d850edb24aba3b826b69fb212fd01099f1d07d5ec33dab363126cec5759edc32"
+    },
+    {
+      "file": "hero-preview.jpg",
+      "bytes": 44747,
+      "sha256": "549c6be664c4a740de868bcc2b6aa3d06cca4820002917c3fdd6b4552f00411c"
+    },
+    {
+      "file": "personalization.jpg",
+      "bytes": 49695,
+      "sha256": "f4b4d40180deb4ff4460b0932ddf7e2e1734f39559cb838ee5f68d46dd0f0a57"
+    },
+    {
+      "file": "recipient-opening.jpg",
+      "bytes": 36840,
+      "sha256": "8bf9df63704def2b49a61fc05b92cd9c22f010ad459ae813b66a37ef4fed5cc0"
+    },
+    {
+      "file": "letter.jpg",
+      "bytes": 37170,
+      "sha256": "65a1d1dc1c68a9e8e121e25f445afae46e3e54b981c1a139e0061bc122061a57"
+    },
+    {
+      "file": "signature.jpg",
+      "bytes": 35119,
+      "sha256": "afa04d9ab4373e139919f554857e3774037ab34b4487ba90646f4ea463228fda"
+    }
+  ]
+}
