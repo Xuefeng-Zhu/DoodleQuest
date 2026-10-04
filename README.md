@@ -36,7 +36,7 @@ Drafts are stored on the server, with ownership tied to this browser's cookie. K
 | Mode                       | Configuration                                          | What it proves                                                                                                                                                                               |
 | -------------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Example** (default)      | Leave `TRIPO_API_KEY` blank.                           | Complete quest, draft saving, approval, sharing, revocation and deletion with authored procedural Pip. **Pip is not Tripo-generated.** Custom uploads need live generation to become a hero. |
-| **Live**                   | Server-side `TRIPO_API_KEY` and `CREATOR_ACCESS_CODE`. | The adapter uploads to Tripo, submits a task, polls and validates a protected GLB. Successful live generation remains unverified in the recorded delivery.                                   |
+| **Live**                   | Server-side `TRIPO_API_KEY` and `CREATOR_ACCESS_CODE`. | Two successful Tripo image-to-model runs and local gameplay with their validated GLBs are recorded in the [verification record](docs/COMPLETION.md). Live rigging is still unverified.       |
 | **Mock** (automated tests) | `E2E_MOCK_PROVIDER=1`, nonproduction only.             | Deterministic provider responses and a labeled octahedron GLB. Production rejects this flag; mock results are not live evidence.                                                             |
 
 Live browser generation requires an unlocked creator session, explicit drawing-transfer consent and an available quota reservation. The default cap is **10 lifetime attempts for the installation and for each session**, including failed or uncertain attempts. See [configuration](docs/configuration.md) before enabling it and the [live smoke test](docs/operations.md#live-smoke-test) before claiming provider success.
@@ -51,22 +51,22 @@ Mouse, touch and keyboard controls share the same quest. Pause, reduced motion, 
 
 ## Documentation
 
-| Guide                                                                         | Use it for                                                                            |
-| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| [Configuration](docs/configuration.md)                                        | Environment variables, modes, credentials, quotas and local ports.                    |
-| [Operations and troubleshooting](docs/operations.md)                          | Web/worker deployment, persistent storage, generation recovery and live verification. |
-| [Creator and recipient guide](docs/experience.md)                             | Making, playing, sharing, revoking and deleting gifts.                                |
-| [Contributing](docs/CONTRIBUTING.md)                                          | Development commands, focused tests, recording evidence and Git conventions.          |
-| [Architecture](docs/ARCHITECTURE.md)                                          | Source map, ownership, snapshots, worker reliability and rendering budgets.           |
-| [Verification record](docs/COMPLETION.md)                                     | Dated check results, measurements and unverified layers.                              |
-| [Asset provenance](docs/ASSET_PROVENANCE.md)                                  | Origins and permissions for drawings, geometry, music and generated assets.           |
-| [Demo script](docs/DEMO_SCRIPT.md) · [Asset board](evidence/asset-board.html) | Recorded product evidence and suggested narration.                                    |
-| [Drawing reveal](docs/REVEAL.md) · [Submission notes](docs/SUBMISSION.md)     | Feature-specific evidence and the conditional event submission draft.                 |
+| Guide                                                                                                | Use it for                                                                            |
+| ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| [Configuration](docs/configuration.md)                                                               | Environment variables, modes, credentials, quotas and local ports.                    |
+| [Operations and troubleshooting](docs/operations.md)                                                 | Web/worker deployment, persistent storage, generation recovery and live verification. |
+| [Creator and recipient guide](docs/experience.md)                                                    | Making, playing, sharing, revoking and deleting gifts.                                |
+| [Contributing](docs/CONTRIBUTING.md)                                                                 | Development commands, focused tests, recording evidence and Git conventions.          |
+| [Architecture](docs/ARCHITECTURE.md)                                                                 | Source map, ownership, snapshots, worker reliability and rendering budgets.           |
+| [Verification record](docs/COMPLETION.md)                                                            | Dated check results, measurements and unverified layers.                              |
+| [Asset provenance](docs/ASSET_PROVENANCE.md)                                                         | Origins and permissions for drawings, geometry, music and generated assets.           |
+| [Demo script](docs/DEMO_SCRIPT.md) · [Tripothon asset board](evidence/tripothon-s1/asset-board.html) | Recorded product evidence and suggested narration.                                    |
+| [Drawing reveal](docs/REVEAL.md) · [Submission notes](docs/SUBMISSION.md)                            | Feature-specific evidence and the Tripothon S1 submission preparation.                |
 
 ## Delivery status
 
-This is a locally verified prototype. [COMPLETION.md](docs/COMPLETION.md) records unit, Chromium, build and rendering checks with their dates and scopes; it is not a claim that every check has just been rerun. The [92.56-second baseline walkthrough](evidence/walkthrough.mp4) uses procedural Pip and predates later feature recordings.
+The **Tripothon S1 preparation was reconciled on October 3, 2026**. Two live Tripo image-to-model runs succeeded. The [87.33-second current walkthrough](evidence/tripothon-s1/walkthrough.mp4) shows the generated Mom & Dad model and a corrected gift from “Your little artist”; it reuses that model without another generation. It is a silent sequence of actual local browser captures, with generation waits visibly accelerated 8×. The [asset board](evidence/tripothon-s1/asset-board.html) and [submission notes](docs/SUBMISSION.md) accompany this local packet. No event entry has been submitted. The GitHub repository is currently private, so judge access remains to be arranged.
 
-Live Tripo output, Docker deployment, hosted HTTPS, backup/restore, Safari/Firefox and physical device/audio behavior remain unverified in that record. Deployment requires **one persistent node with shared local SQLite and asset storage**; ephemeral serverless hosting is unsuitable.
+[COMPLETION.md](docs/COMPLETION.md) records checks with their dates and scopes; older test results are not a claim of a fresh full-suite run. The [92.56-second baseline walkthrough](evidence/walkthrough.mp4) is retained as historical procedural-Pip evidence. Live Tripo rigging, Docker deployment, hosted HTTPS, backup/restore, Safari/Firefox and physical device/audio behavior remain unverified. Deployment requires **one persistent node with shared local SQLite and asset storage**; ephemeral serverless hosting is unsuitable.
 
 Gift links are **unlisted, not fully private**. Anyone with a link can view its saved snapshot. Revocation blocks future requests but cannot retract downloaded copies. Project deletion removes local access and queues local file cleanup; provider-side deletion is not promised. Read the [privacy and sharing details](docs/experience.md#privacy-and-sharing) before using personal artwork.

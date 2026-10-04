@@ -115,7 +115,9 @@ The current hero remains usable while motion is pending or unsuccessful. A succe
 
 ## Live smoke test
 
-**Not run in the recorded delivery.** Use this checklist to collect actual provider evidence after reviewing current pricing and configuring credentials.
+**Status reconciled 2026-10-03:** two live Tripo image-to-model jobs succeeded, and their validated models loaded and completed the local adventure. The second model was also published and played in a separate local recipient browser, then reused for the corrected Tripothon S1 walkthrough without another generation. See [the dated verification record](COMPLETION.md#tripothon-s1-evidence-reconciliation--2026-10-03) for scope. Live rigging, deployment and live-generated-asset revocation/deletion acceptance remain unverified.
+
+The checklist below describes a future separately authorized run; preparing the submission packet does not require another paid generation. Review current pricing and the remaining quota before any new attempt. Existing saved models and known task IDs should be reused for evidence and recovery.
 
 1. Configure key, creator code, model, exact origin and quota, with `E2E_MOCK_PROVIDER=0`. Start web and worker against the same data directory. Use the repository drawing for the first run, not private personal artwork.
 2. Upload `public/sample-drawing.png` through **Choose a drawing**. The quick Pip sample button deliberately selects procedural geometry and will not demonstrate Tripo generation. Save, consent, unlock and submit once. Record the task ID, never the key.
