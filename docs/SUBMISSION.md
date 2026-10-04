@@ -22,4 +22,4 @@ The updated [submission package](../tripothon-submission.md) contains the Octobe
 - [Verification](../evidence/tripothon-s1/verification.json): sanitized local evidence summary.
 - [COMPLETION.md](COMPLETION.md): dated verified, mocked and unfinished items.
 
-Before entering: provide a judge-accessible playable demo and media destinations, review source/output permissions, inspect the remaining portal form and confirm the final entry. The repository is currently private. Preserve the raw local evidence separately; never upload credentials, runtime databases, owner cookies or signed provider URLs.
+Before entering: provide a judge-accessible playable demo and media destinations, review source/output permissions, inspect the remaining portal form and confirm the final entry. The [repository](https://github.com/Xuefeng-Zhu/DoodleQuest) is now public, and anonymous source access has been verified. Hosted playable access and event media submission are still pending. Preserve the raw local evidence separately; never upload credentials, runtime databases, owner cookies or signed provider URLs.

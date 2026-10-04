@@ -6,7 +6,7 @@ The deployment definition is [render.yaml](../render.yaml). It uses one native N
 
 | Setting                 | Value                                                                                                                           |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| Repository              | `Xuefeng-Zhu/DoodleQuest` (private)                                                                                             |
+| Repository              | `Xuefeng-Zhu/DoodleQuest` (public)                                                                                              |
 | Branch                  | `codex/render-deployment`                                                                                                       |
 | Runtime                 | Node.js 24.14.1                                                                                                                 |
 | Compute                 | `0.5c-512mb`, one instance                                                                                                      |
@@ -20,7 +20,7 @@ The deployment definition is [render.yaml](../render.yaml). It uses one native N
 
 The [current pricing](https://render.com/pricing), checked October 3, 2026, lists this compute size at $7/month and persistent disks at $0.25/GB/month: **$7.25/month base infrastructure**, before tax or additional usage. Approval is required before provisioning this paid service. The larger 2 GB compute option is $25/month if actual load later requires it; no automatic upgrade is configured.
 
-No Render service has been created yet. The Render workspace is signed in, but its Git provider connection is missing. Automatic approval review blocked opening that access-grant flow; the user must approve connecting Render to this private repository before deployment can continue.
+No Render service has been created yet, and approval for the paid service remains pending. The repository is now public with anonymous GitHub access verified. Render successfully connected through **Public Git Repository**. The earlier GitHub integration access flow was blocked by automatic approval review; the public repository connection does not require that OAuth grant.
 
 ## Local verification — October 3, 2026
 
@@ -38,9 +38,9 @@ The build uses temporary storage because the persistent disk is available only a
 
 The tracked sample PNG already exists. Production startup does not regenerate source art, import local user data or run a paid generation. Dependencies needed by the TypeScript worker and launcher remain installed by `npm ci --include=dev`.
 
-## After repository access and cost approval
+## After cost approval
 
-1. Connect Render's GitHub integration to **only `Xuefeng-Zhu/DoodleQuest`** if selected-repository access is available. Review the actual permission screen before granting it.
+1. Use the already connected **Public Git Repository** source, `https://github.com/Xuefeng-Zhu/DoodleQuest`. No GitHub OAuth connection is required for this source.
 2. Create a Blueprint from `codex/render-deployment`, or create a Node web service with the exact table above. Set the disk and environment before the first start. Do not choose Docker merely because a Dockerfile exists; the existing Compose configuration launches its worker separately.
 3. Review the paid service/disk quote. Deploy the reviewed commit and wait for successful build and healthy status.
 4. Verify HTTPS `/`, `/example`, `/create`, `/api/mode` and `/api/health`. Play the example, save and publish a fictional procedural gift, then open its link in a separate browser context.

@@ -1,6 +1,6 @@
 # DoodleQuest — Tripothon S1 submission package
 
-Prepared locally on October 3, 2026. **Not entered in the event.** Target: **Game + Tripo**. The user confirmed Tripothon S1; team details, agreements and publication remain for review.
+Prepared locally on October 3, 2026. **Not entered in the event.** Target: **Game + Tripo**. The user confirmed Tripothon S1; team details, agreements and the event entry remain for review. The source repository is now public.
 
 ## Event and required materials
 
@@ -81,9 +81,9 @@ Our presentation choices:
 
 **Public demo URL: TODO — no hosted judge URL is verified.** A localhost URL and a recording do not satisfy playable access for remote judges.
 
-**Repository:** https://github.com/Xuefeng-Zhu/DoodleQuest — verified **private** on October 3. Do not present this as a public build log or assume judges have access. No root license file is currently present. No repository visibility or licensing decision was made in this preparation.
+**Repository:** [Xuefeng-Zhu/DoodleQuest](https://github.com/Xuefeng-Zhu/DoodleQuest) — now **public** at the user's request, with anonymous GitHub access verified. Source and reviewed media are accessible to judges. No root license file is currently present; making the repository public does not establish a reuse license. A hosted playable demo is still pending.
 
-Local fallback for a reviewer who has source access:
+Local fallback from the public source repository:
 
 1. Use Node.js 24 and npm. In a fresh checkout, run `npm ci`.
 2. Copy `.env.example` to `.env` only when no local environment file exists. Leave credentials blank for procedural example mode.
@@ -100,7 +100,7 @@ This fallback uses authored procedural Pip. It demonstrates the complete product
 - Evidence provenance and verification: [verification.json](evidence/tripothon-s1/verification.json).
 - Suggested narration and historical recording context: [DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md).
 
-**Public video URL: TODO. Public board URL/upload: TODO.** Files are prepared locally; nothing was uploaded by this task. The 87.33-second walkthrough is assembled from actual browser captures sampled at approximately 5 fps and encoded at 24 fps. It is silent, removes tool-idle gaps and visibly accelerates generation waits 8×. Local gift links are masked for the shareable copy. Its source capture predates the latest background and motion work. Do not claim continuous real-time capture, provider latency, or that it showcases every feature in the current branch.
+**Event video URL/upload: TODO. Event board URL/upload: TODO.** Reviewed files are available in the public repository through the links above. They have not been uploaded to the event portal; a dedicated video/board destination still needs to be selected. The 87.33-second walkthrough is assembled from actual browser captures sampled at approximately 5 fps and encoded at 24 fps. It is silent, removes tool-idle gaps and visibly accelerates generation waits 8×. Local gift links are masked for the shareable copy. Its source capture predates the latest background and motion work. Do not claim continuous real-time capture, provider latency, or that it showcases every feature in the current branch.
 
 Suggested narration, if adding voice later:
 
@@ -124,7 +124,8 @@ Show the source artwork, generated hero preview, personalized gift opening, star
 - [x] Identify a credential-free local demo path and document its procedural hero.
 - [x] Finish media privacy review, visual inspection and package integrity checks; local gift links are masked in the shareable walkthrough.
 - [ ] Provide a judge-accessible playable demo, including the recorded Tripo hero if entering its tool track.
-- [ ] Upload the reviewed walkthrough and asset board to destinations accessible to judges.
+- [x] Make the source repository and reviewed media public; anonymous repository access verified.
+- [ ] Provide the walkthrough and asset board in the destinations or upload fields required by the event portal.
 - [ ] Approve opening a remote draft; inspect the remaining form and adapt this copy to its actual limits.
 - [ ] Confirm team details, artwork/output rights and any required agreements in the actual form.
 - [ ] Review the completed remote entry and authorize its final submission before the deadline.

@@ -17,10 +17,10 @@ The recording predates the latest background and motion work. It establishes sav
 ## Still required for the event
 
 - A playable destination judges can access. Neither this media kit nor a localhost link supplies one.
-- Judge-accessible video and board uploads or links.
+- Video and board uploads or links in the format required by the event portal; the reviewed files are already accessible in the public repository.
 - Review of the remaining portal fields, team details, source/output rights and required agreements.
 - Review and authorization of the final entry.
 
-The repository is currently private. Do not upload `.env` files, runtime databases, owner cookies, raw local verification records or the original unredacted recording.
+The [repository](https://github.com/Xuefeng-Zhu/DoodleQuest) is now public, with anonymous access verified. This kit is available with the source. Do not upload `.env` files, runtime databases, owner cookies, raw local verification records or the original unredacted recording.
 
-The full preparation checklist is in the repository's `tripothon-submission.md`. No files in this kit have been uploaded by the preparation task.
+The full preparation checklist is in the repository's `tripothon-submission.md`. No files in this kit have been submitted through the event portal.
