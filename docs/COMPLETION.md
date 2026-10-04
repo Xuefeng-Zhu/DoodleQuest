@@ -6,7 +6,9 @@ This working prototype has a public Vercel + Neon example deployment, local appl
 
 Five inline findings on PR #1 were missed before the initial merge. The follow-up creates missing heartbeat directories, requires an external PostgreSQL URL for Compose, removes the obsolete Render Blueprint, reads terminal job and project state under the worker transaction lock, and bounds public drawing storage with a shared 25 MiB/hour byte limit plus reclamation of unreferenced replaced drawings. Published keepsakes and generation inputs are retained.
 
-Validation: all 153 unit/integration tests across 17 files passed, including fresh-directory startup, stale generation/motion callers, concurrent anonymous upload limits, drawing replacement, gift/job retention and storage rollback. TypeScript checking and diff checks passed. Compose configuration rejected a blank database URL and accepted a placeholder external URL; no container startup is claimed. Hosted deployment of this follow-up has not yet been verified.
+The second review also identified repeated per-draft locking and retention of images referenced only by revoked gifts. Draft lists now use one transaction with a fixed five-query snapshot for populated drafts. Revocation reclaims unreferenced images in the same transaction, including drawings replaced before revocation, while retaining current drafts, active gifts and generation/motion history.
+
+Validation: all 163 unit/integration tests across 19 files passed, including fresh-directory startup, stale generation/motion callers, batched owner isolation, concurrent anonymous upload limits, drawing replacement, gift/job retention, revocation before/after replacement, and storage rollback. TypeScript checking and diff checks passed. Compose configuration rejected a blank database URL and accepted a placeholder external URL; no container startup is claimed. Hosted deployment of this follow-up has not yet been verified.
 
 ## Main merge and Tripothon remote draft — 2026-10-03
 

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readFile } from "node:fs/promises";
 import { z } from "zod";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { db, ready, transaction } from "@/server/db";
-import { projects, gifts, jobs } from "@/server/schema";
+import { projects, jobs } from "@/server/schema";
 import {
   HttpError,
   owner,
@@ -18,6 +18,7 @@ import { env, mode } from "@/server/env";
 import {
   newProject,
   projectView,
+  ownerProjectViews,
   requestGeneration,
   publish,
   activeStatuses,
@@ -26,7 +27,11 @@ import {
 } from "@/server/repository";
 import { asset, storage, normalizeImage, saveAsset } from "@/server/storage";
 import { GiftConfigSchema } from "@/domain/config";
-import { deleteProject, reclaimReplacedDrawing } from "@/server/cleanup";
+import {
+  deleteProject,
+  reclaimReplacedDrawing,
+  revokeGift,
+} from "@/server/cleanup";
 import { dispatchJob } from "@/server/dispatch";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -75,8 +80,7 @@ async function dispatchActive(
     console.warn("A saved job is waiting for workflow dispatch.");
   }
 }
-async function ownerView(p: Parameters<typeof projectView>[0]) {
-  const view = await projectView(p);
+async function ownerView(view: Awaited<ReturnType<typeof projectView>>) {
   await Promise.all([
     dispatchActive("generation", view.job),
     dispatchActive("motion", view.motionJob),
@@ -165,11 +169,7 @@ async function handler(
     if (root !== "projects") throw new HttpError(404, "Not found.");
     if (!id) {
       if (method === "GET") {
-        const drafts = await db
-          .select()
-          .from(projects)
-          .where(eq(projects.owner, session.id))
-          .orderBy(desc(projects.updatedAt));
+        const drafts = await ownerProjectViews(session.id);
         return NextResponse.json(await Promise.all(drafts.map(ownerView)), {
           headers: { "Cache-Control": "no-store" },
         });
@@ -186,7 +186,7 @@ async function handler(
     }
     const p = await owned(id, session.id);
     if (!action && method === "GET")
-      return NextResponse.json(await ownerView(p), {
+      return NextResponse.json(await ownerView(await projectView(p)), {
         headers: { "Cache-Control": "no-store" },
       });
     if (!action && method === "PATCH") {
@@ -382,10 +382,7 @@ async function handler(
       const { shareId } = z
         .object({ shareId: z.string().uuid() })
         .parse(await json(req));
-      await db
-        .update(gifts)
-        .set({ revoked: 1 })
-        .where(and(eq(gifts.id, shareId), eq(gifts.projectId, id)));
+      await revokeGift(id, shareId);
       return NextResponse.json({ revoked: true });
     }
     throw new HttpError(404, "Action not found.");
