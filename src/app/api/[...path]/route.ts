@@ -26,7 +26,7 @@ import {
 } from "@/server/repository";
 import { asset, storage, normalizeImage, saveAsset } from "@/server/storage";
 import { GiftConfigSchema } from "@/domain/config";
-import { deleteProject } from "@/server/cleanup";
+import { deleteProject, reclaimReplacedDrawing } from "@/server/cleanup";
 import { dispatchJob } from "@/server/dispatch";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -259,6 +259,16 @@ async function handler(
             409,
             "The drawing changed or generation started. Reload the draft before replacing it.",
           );
+        // Count decoded PNG bytes across all owners, including sample requests.
+        // New cookies cannot reset this cap, and failed writes refund it through
+        // the surrounding transaction. One hour cannot consume the 200 MiB default.
+        await rateLimit(
+          "upload-bytes-global",
+          25 * 1024 * 1024,
+          3600_000,
+          original.length + normalized.length,
+        );
+        await reclaimReplacedDrawing(id, latest.inputAsset);
         // Both image records and the new revision commit together. Failed
         // quota checks or competing edits must not leave unused stored bytes.
         const originalId = await saveAsset(id, "original", original, {

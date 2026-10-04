@@ -28,6 +28,8 @@ Omit `APP_ORIGIN` to use Vercel's production domain or the isolated preview URL.
 
 PostgreSQL stores sessions, drafts, immutable gift snapshots, quota history, job leases and PNG/GLB bytes. Asset writes, quota reservations and gift mutations use transactions. A default 200 MiB payload budget leaves room for database metadata, although database storage and transfer must still be monitored in Neon. Deleting a project removes its private bytes and gift access; lifetime generation usage remains.
 
+Drawing uploads share a 25 MiB hourly limit across all sessions, charged using both normalized PNGs rather than compressed request size. Failed storage writes refund that reservation. Replacing a drawing reclaims its old bytes unless they remain referenced by a published gift or generation job. This bounds rapid anonymous storage growth while keeping saved keepsakes available.
+
 Each Workflow run advances one persisted generation or motion job. Workflow inputs contain only job IDs and scheduling metadata. Provider keys and image/model bytes stay inside the Node.js step. Duplicate enqueue requests share a deterministic hook and fenced database leases. An interrupted provider submission without a saved task ID stops as uncertain rather than automatically spending again. A run is bounded to 720 advances; owner status polling can resume the same durable task if a run stops or enqueueing was interrupted.
 
 Uploads are clamped below 4 MiB including reserved multipart overhead. Authorized asset responses stream in chunks so models up to the existing 25 MiB validation budget can load through Vercel. Gift revocation and owner checks apply before streaming.

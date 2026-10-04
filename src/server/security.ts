@@ -56,14 +56,12 @@ export async function createSession(req: NextRequest) {
     return NextResponse.json({ ready: true, unlocked: !!existing.unlocked });
   const raw = token(),
     now = Date.now();
-  await db
-    .insert(sessions)
-    .values({
-      id: digest(raw),
-      createdAt: now,
-      expiresAt: now + 1000 * 60 * 60 * 24 * 90,
-      unlocked: 0,
-    });
+  await db.insert(sessions).values({
+    id: digest(raw),
+    createdAt: now,
+    expiresAt: now + 1000 * 60 * 60 * 24 * 90,
+    unlocked: 0,
+  });
   const res = NextResponse.json({ ready: true, unlocked: false });
   res.cookies.set("dq_owner", raw, {
     httpOnly: true,
@@ -96,7 +94,14 @@ export async function shared(t: string) {
   if (!gift) throw new HttpError(404, "This gift link is no longer available.");
   return gift;
 }
-export async function rateLimit(key: string, limit: number, windowMs: number) {
+export async function rateLimit(
+  key: string,
+  limit: number,
+  windowMs: number,
+  cost = 1,
+) {
+  if (!Number.isSafeInteger(cost) || cost < 1)
+    throw new Error("Rate limit cost must be a positive integer.");
   await transaction(async () => {
     const now = Date.now();
     await db.delete(rateLimits).where(lt(rateLimits.untilAt, now));
@@ -104,14 +109,14 @@ export async function rateLimit(key: string, limit: number, windowMs: number) {
       .select()
       .from(rateLimits)
       .where(eq(rateLimits.key, key));
-    if (current && current.count >= limit)
+    if ((current?.count ?? 0) + cost > limit)
       throw new HttpError(429, "A little pause, please. Try again later.");
     await db
       .insert(rateLimits)
-      .values({ key, count: 1, untilAt: now + windowMs })
+      .values({ key, count: cost, untilAt: now + windowMs })
       .onConflictDoUpdate({
         target: rateLimits.key,
-        set: { count: sql`${rateLimits.count} + 1` },
+        set: { count: sql`${rateLimits.count} + ${cost}` },
       });
   });
 }

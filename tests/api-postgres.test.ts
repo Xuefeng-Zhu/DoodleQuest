@@ -13,7 +13,7 @@ import {
 } from "../src/server/schema";
 import { digest, owned } from "../src/server/security";
 import { newProject, publish } from "../src/server/repository";
-import { normalizeImage, saveAsset } from "../src/server/storage";
+import { asset, normalizeImage, saveAsset } from "../src/server/storage";
 import { env } from "../src/server/env";
 import { dispatchJob } from "../src/server/dispatch";
 import { GET, POST } from "../src/app/api/[...path]/route";
@@ -80,7 +80,10 @@ describe("Postgres API delivery and workflow recovery", () => {
       sql`SELECT COUNT(*)::integer AS count FROM assets WHERE "projectId"=${p.id}`,
     );
     const previous = env.assetBudget;
-    env.assetBudget = before.bytes + original.length;
+    // Replacing the old input reclaims its bytes; leave room for only the
+    // first replacement image after that reclamation, forcing rollback.
+    env.assetBudget =
+      before.bytes - (await asset(p.inputAsset!)).bytes + original.length;
     try {
       const form = new FormData();
       form.set("sample", "true");
