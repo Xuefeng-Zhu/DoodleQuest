@@ -1,12 +1,13 @@
 import { config } from "dotenv";
 import path from "node:path";
+import { appOrigin } from "./origin";
 config({ path: ".env.local", quiet: true });
 config({ quiet: true });
 export const env = {
   data: path.resolve(
     /* turbopackIgnore: true */ process.env.DATA_DIR || "data",
   ),
-  origin: process.env.APP_ORIGIN || "http://localhost:3000",
+  origin: appOrigin(),
   key: process.env.TRIPO_API_KEY || "",
   model: process.env.TRIPO_MODEL || "v3.1-20260211",
   code: process.env.CREATOR_ACCESS_CODE || "",

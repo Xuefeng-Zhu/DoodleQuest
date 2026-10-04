@@ -55,6 +55,7 @@ Mouse, touch and keyboard controls share the same quest. Pause, reduced motion, 
 | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
 | [Configuration](docs/configuration.md)                                                               | Environment variables, modes, credentials, quotas and local ports.                    |
 | [Operations and troubleshooting](docs/operations.md)                                                 | Web/worker deployment, persistent storage, generation recovery and live verification. |
+| [Render deployment](docs/RENDER.md)                                                                 | Service configuration, persistent disk, readiness and hosted acceptance checks.       |
 | [Creator and recipient guide](docs/experience.md)                                                    | Making, playing, sharing, revoking and deleting gifts.                                |
 | [Contributing](docs/CONTRIBUTING.md)                                                                 | Development commands, focused tests, recording evidence and Git conventions.          |
 | [Architecture](docs/ARCHITECTURE.md)                                                                 | Source map, ownership, snapshots, worker reliability and rendering budgets.           |

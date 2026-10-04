@@ -9,6 +9,7 @@
     "worker": "tsx src/server/worker-entry.ts",
     "build": "next build",
     "start": "next start --hostname 0.0.0.0",
+    "start:production": "node --import tsx scripts/start-production.ts",
     "db:migrate": "tsx scripts/migrate.ts",
     "db:seed": "tsx scripts/seed.ts",
     "sample:generate": "tsx scripts/generate-sample.ts",
