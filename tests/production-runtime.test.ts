@@ -29,6 +29,18 @@ afterEach(() => {
 });
 
 describe("deployment origin", () => {
+  it("selects the Vercel production alias or the isolated preview deployment", () => {
+    const variables = {
+      VERCEL_PROJECT_PRODUCTION_URL: "doodlequest.vercel.app",
+      VERCEL_URL: "doodlequest-preview.vercel.app",
+    };
+    expect(appOrigin({ ...variables, VERCEL_ENV: "production" })).toBe(
+      "https://doodlequest.vercel.app",
+    );
+    expect(appOrigin({ ...variables, VERCEL_ENV: "preview" })).toBe(
+      "https://doodlequest-preview.vercel.app",
+    );
+  });
   it("uses the Render hostname while preserving an explicit custom origin", () => {
     expect(
       appOrigin({ RENDER_EXTERNAL_HOSTNAME: "doodlequest.onrender.com" }),

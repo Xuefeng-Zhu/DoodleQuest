@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { NextRequest } from "next/server";
-import { db, sqlite } from "../src/server/db";
+import { db, ready, query } from "../src/server/db";
 import {
   motionJobs,
+  jobs,
   projects,
   sessions,
   type MotionJob,
@@ -33,20 +34,23 @@ import {
 } from "../src/server/tripo";
 import { deleteProject } from "../src/server/cleanup";
 import { env } from "../src/server/env";
+import { dispatchJob } from "../src/server/dispatch";
 import { POST } from "../src/app/api/[...path]/route";
+
+vi.mock("../src/server/dispatch", () => ({
+  dispatchJob: vi.fn().mockResolvedValue(undefined),
+}));
 
 async function hero(unlocked = 1) {
   const cookie = randomUUID(),
     owner = digest(cookie);
-  db.insert(sessions)
-    .values({
-      id: owner,
-      createdAt: Date.now(),
-      expiresAt: Date.now() + 100_000,
-      unlocked,
-    })
-    .run();
-  const p = newProject(owner);
+  await db.insert(sessions).values({
+    id: owner,
+    createdAt: Date.now(),
+    expiresAt: Date.now() + 100_000,
+    unlocked,
+  });
+  const p = await newProject(owner);
   const inputAsset = await saveAsset(
     p.id,
     "drawing",
@@ -58,14 +62,16 @@ async function hero(unlocked = 1) {
     await readFile("tests/fixtures/mock.glb"),
     { providerTask: "task_original", source: "tripo" },
   );
-  db.update(projects)
+  await db
+    .update(projects)
     .set({ inputAsset, revision: 1, modelAsset, source: "tripo", approved: 1 })
-    .where(eq(projects.id, p.id))
-    .run();
-  return { ...owned(p.id, owner), cookie };
+    .where(eq(projects.id, p.id));
+  return { ...(await owned(p.id, owner)), cookie };
 }
-const get = (id: string) =>
-  db.select().from(motionJobs).where(eq(motionJobs.id, id)).get()!;
+const get = async (id: string) =>
+  (
+    await db.select().from(motionJobs).where(eq(motionJobs.id, id)).limit(1)
+  )[0]!;
 function rewriteGlb(
   bytes: Buffer,
   edit: (doc: {
@@ -92,11 +98,11 @@ function rewriteGlb(
   binary.copy(result, 20 + padded.length);
   return result;
 }
-function due(id: string) {
-  db.update(motionJobs)
+async function due(id: string) {
+  await db
+    .update(motionJobs)
     .set({ leaseUntil: 0, nextPoll: 0 })
-    .where(eq(motionJobs.id, id))
-    .run();
+    .where(eq(motionJobs.id, id));
 }
 const provider = () => ({
   upload: vi.fn(),
@@ -120,7 +126,7 @@ async function steps(
   download = () => readFile("tests/fixtures/animated.glb"),
 ) {
   for (let i = 0; i < count; i++) {
-    due(id);
+    await due(id);
     await processMotionOne(api, motionRepository, download);
   }
 }
@@ -143,54 +149,81 @@ function request(
     { params: Promise.resolve({ path: ["projects", p.id, action] }) },
   );
 }
-beforeEach(() => {
-  sqlite.prepare("UPDATE motion_jobs SET status='failed',leaseUntil=0").run();
-  sqlite.prepare("UPDATE jobs SET status='failed',leaseUntil=0").run();
+beforeEach(async () => {
+  await ready();
+  await db.update(motionJobs).set({ status: "failed", leaseUntil: 0 });
+  await db.update(jobs).set({ status: "failed", leaseUntil: 0 });
+  vi.mocked(dispatchJob).mockClear();
 });
 
 describe("durable hero movement", () => {
+  it("shares the last quota slot atomically between generation and motion", async () => {
+    const [a, b] = await Promise.all([hero(), hero()]);
+    const [usage] = await query<{ count: number }>(
+      sql`SELECT COUNT(*)::integer AS count FROM generation_usage`,
+    );
+    const previous = env.quota;
+    env.quota = usage.count + 1;
+    try {
+      const results = await Promise.allSettled([
+        requestGeneration(a, randomUUID()),
+        requestMotion(b, randomUUID()),
+      ]);
+      expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+      const rejected = results.find((r) => r.status === "rejected");
+      expect(rejected?.reason.message).toContain("quota");
+    } finally {
+      env.quota = previous;
+    }
+  });
   it("runs all three stages once, keeps the approved hero until completion, and preserves published versions", async () => {
     const p = await hero(),
-      gift = publish(p),
+      gift = await publish(p),
       key = randomUUID(),
       api = provider();
-    const j = requestMotion(p, key);
-    expect(requestMotion(p, key).id).toBe(j.id);
-    expect(requestMotion(p, randomUUID()).id).toBe(j.id);
-    expect(owned(p.id, p.owner)).toMatchObject({
+    const [j, repeated, distinct] = await Promise.all([
+      requestMotion(p, key),
+      requestMotion(p, key),
+      requestMotion(p, randomUUID()),
+    ]);
+    expect(repeated.id).toBe(j.id);
+    expect(distinct.id).toBe(j.id);
+    expect(await owned(p.id, p.owner)).toMatchObject({
       approved: 1,
       modelAsset: p.modelAsset,
     });
     await steps(j.id, api, 5);
-    expect(get(j.id)).toMatchObject({
+    expect(await get(j.id)).toMatchObject({
       stage: "retarget",
       checkTask: "task_check",
       rigTask: "task_rig",
       retargetTask: "task_retarget",
     });
-    expect(owned(p.id, p.owner).modelAsset).toBe(p.modelAsset);
+    expect((await owned(p.id, p.owner)).modelAsset).toBe(p.modelAsset);
     await steps(j.id, api, 1);
-    expect(get(j.id).status).toBe("ready");
-    const final = owned(p.id, p.owner);
+    expect((await get(j.id)).status).toBe("ready");
+    const final = await owned(p.id, p.owner);
     expect(final.approved).toBe(0);
-    expect(final.modelAsset).toBe(get(j.id).finalAsset);
+    expect(final.modelAsset).toBe((await get(j.id)).finalAsset);
     expect(final.modelAsset).not.toBe(p.modelAsset);
-    expect(JSON.parse(asset(final.modelAsset!).metadata)).toMatchObject({
-      rigged: true,
-      generationTask: "task_original",
-      animationClips: [
-        "preset:biped:idle",
-        "preset:biped:walk",
-        "preset:biped:cheer",
-      ],
-    });
-    expect(JSON.parse(shared(gift.token).snapshot).modelAsset).toBe(
+    expect(JSON.parse((await asset(final.modelAsset!)).metadata)).toMatchObject(
+      {
+        rigged: true,
+        generationTask: "task_original",
+        animationClips: [
+          "preset:biped:idle",
+          "preset:biped:walk",
+          "preset:biped:cheer",
+        ],
+      },
+    );
+    expect(JSON.parse((await shared(gift.token)).snapshot).modelAsset).toBe(
       p.modelAsset,
     );
     expect(api.rigCheck).toHaveBeenCalledExactlyOnceWith("task_original");
     expect(api.rig).toHaveBeenCalledExactlyOnceWith("task_original", "biped");
     expect(api.retarget).toHaveBeenCalledExactlyOnceWith("task_rig", "biped");
-    expect(projectView(final).motionJob).toMatchObject({
+    expect((await projectView(final)).motionJob).toMatchObject({
       status: "ready",
       finalAsset: final.modelAsset,
       inputAsset: p.modelAsset,
@@ -199,7 +232,7 @@ describe("durable hero movement", () => {
 
   it("resumes saved stages and retries only local download without repeating paid work", async () => {
     const p = await hero(),
-      j = requestMotion(p, randomUUID()),
+      j = await requestMotion(p, randomUUID()),
       api = provider();
     await steps(j.id, api, 5);
     const restarted = provider();
@@ -208,9 +241,9 @@ describe("durable hero movement", () => {
       .mockRejectedValueOnce(new Error("interrupted"))
       .mockResolvedValue(await readFile("tests/fixtures/animated.glb"));
     await steps(j.id, restarted, 1, download);
-    expect(get(j.id).status).toBe("asset_retry");
+    expect((await get(j.id)).status).toBe("asset_retry");
     await steps(j.id, restarted, 1, download);
-    expect(get(j.id).status).toBe("ready");
+    expect((await get(j.id)).status).toBe("ready");
     expect(restarted.rigCheck).not.toHaveBeenCalled();
     expect(restarted.rig).not.toHaveBeenCalled();
     expect(restarted.retarget).not.toHaveBeenCalled();
@@ -220,9 +253,10 @@ describe("durable hero movement", () => {
     "does not repeat an interrupted %s submission",
     async (stage) => {
       const p = await hero(),
-        j = requestMotion(p, randomUUID()),
+        j = await requestMotion(p, randomUUID()),
         api = provider();
-      db.update(motionJobs)
+      await db
+        .update(motionJobs)
         .set({
           stage,
           status: "submitting",
@@ -230,17 +264,16 @@ describe("durable hero movement", () => {
           rigTask: stage === "retarget" ? "task_rig" : null,
           rigType: stage !== "rig_check" ? "biped" : null,
         })
-        .where(eq(motionJobs.id, j.id))
-        .run();
+        .where(eq(motionJobs.id, j.id));
       await steps(j.id, api, 2);
-      expect(get(j.id).status).toBe("uncertain");
+      expect((await get(j.id)).status).toBe("uncertain");
       expect(api.rigCheck).not.toHaveBeenCalled();
       expect(api.rig).not.toHaveBeenCalled();
       expect(api.retarget).not.toHaveBeenCalled();
-      expect(() => requestMotion(p, randomUUID())).toThrow(
+      await expect(requestMotion(p, randomUUID())).rejects.toThrow(
         "already has a movement attempt",
       );
-      const retry = requestMotion(p, randomUUID(), true);
+      const retry = await requestMotion(p, randomUUID(), true);
       expect(retry.stage).toBe(stage);
       await steps(retry.id, api, 1);
       expect(
@@ -255,15 +288,15 @@ describe("durable hero movement", () => {
 
   it("marks an ambiguous retarget call uncertain and an explicit retry reuses its completed rig", async () => {
     const p = await hero(),
-      j = requestMotion(p, randomUUID()),
+      j = await requestMotion(p, randomUUID()),
       api = provider();
     api.retarget.mockRejectedValueOnce(new ProviderError("timeout"));
     await steps(j.id, api, 6);
-    expect(get(j.id).status).toBe("uncertain");
+    expect((await get(j.id)).status).toBe("uncertain");
     expect(api.retarget).toHaveBeenCalledTimes(1);
-    const retry = requestMotion(p, randomUUID(), true);
+    const retry = await requestMotion(p, randomUUID(), true);
     await steps(retry.id, api, 2);
-    expect(get(retry.id).status).toBe("ready");
+    expect((await get(retry.id)).status).toBe("ready");
     expect(api.rigCheck).toHaveBeenCalledTimes(1);
     expect(api.rig).toHaveBeenCalledTimes(1);
     expect(api.retarget).toHaveBeenCalledTimes(2);
@@ -276,7 +309,7 @@ describe("durable hero movement", () => {
     "falls back without paid rigging for unsupported $rigType ($riggable)",
     async (result) => {
       const p = await hero(),
-        j = requestMotion(p, randomUUID()),
+        j = await requestMotion(p, randomUUID()),
         api = provider();
       api.retrieve.mockResolvedValue({
         id: "task_check",
@@ -284,9 +317,9 @@ describe("durable hero movement", () => {
         ...result,
       });
       await steps(j.id, api, 4);
-      expect(get(j.id).status).toBe("unsupported");
+      expect((await get(j.id)).status).toBe("unsupported");
       expect(api.rig).not.toHaveBeenCalled();
-      expect(owned(p.id, p.owner)).toMatchObject({
+      expect(await owned(p.id, p.owner)).toMatchObject({
         modelAsset: p.modelAsset,
         approved: 1,
       });
@@ -295,19 +328,19 @@ describe("durable hero movement", () => {
 
   it("preserves the original hero on provider failure or missing skeletal animation", async () => {
     const p = await hero(),
-      j = requestMotion(p, randomUUID()),
+      j = await requestMotion(p, randomUUID()),
       api = provider();
     await steps(j.id, api, 6, () => readFile("tests/fixtures/mock.glb"));
-    expect(get(j.id)).toMatchObject({ status: "failed" });
-    expect(get(j.id).lastError).toContain("skeletal animation");
-    expect(owned(p.id, p.owner)).toMatchObject({
+    expect(await get(j.id)).toMatchObject({ status: "failed" });
+    expect((await get(j.id)).lastError).toContain("skeletal animation");
+    expect(await owned(p.id, p.owner)).toMatchObject({
       modelAsset: p.modelAsset,
       approved: 1,
     });
-    expect(() => requestMotion(p, randomUUID())).toThrow(
+    await expect(requestMotion(p, randomUUID())).rejects.toThrow(
       "already has a movement attempt",
     );
-    const retry = requestMotion(p, randomUUID(), true);
+    const retry = await requestMotion(p, randomUUID(), true);
     expect(retry).toMatchObject({
       stage: "retarget",
       checkTask: "task_check",
@@ -316,7 +349,7 @@ describe("durable hero movement", () => {
     });
     api.retrieve.mockResolvedValue({ id: "task_retarget", status: "failed" });
     await steps(retry.id, api, 2);
-    expect(get(retry.id).status).toBe("failed");
+    expect((await get(retry.id)).status).toBe("failed");
     expect(api.rigCheck).toHaveBeenCalledTimes(1);
     expect(api.rig).toHaveBeenCalledTimes(1);
     expect(api.retarget).toHaveBeenCalledTimes(2);
@@ -324,7 +357,7 @@ describe("durable hero movement", () => {
 
   it("keeps the approved hero when Tripo returns unrecognized clip names", async () => {
     const p = await hero(),
-      j = requestMotion(p, randomUUID()),
+      j = await requestMotion(p, randomUUID()),
       api = provider();
     const renamed = rewriteGlb(
       await readFile("tests/fixtures/animated.glb"),
@@ -335,9 +368,9 @@ describe("durable hero movement", () => {
       },
     );
     await steps(j.id, api, 6, async () => renamed);
-    expect(get(j.id).status).toBe("failed");
-    expect(get(j.id).lastError).toContain("clip names");
-    expect(owned(p.id, p.owner)).toMatchObject({
+    expect((await get(j.id)).status).toBe("failed");
+    expect((await get(j.id)).lastError).toContain("clip names");
+    expect(await owned(p.id, p.owner)).toMatchObject({
       modelAsset: p.modelAsset,
       approved: 1,
     });
@@ -345,13 +378,13 @@ describe("durable hero movement", () => {
 
   it("terminates malformed output without blocking replacement or deletion", async () => {
     const p = await hero(),
-      j = requestMotion(p, randomUUID()),
+      j = await requestMotion(p, randomUUID()),
       api = provider();
     const download = vi.fn().mockResolvedValue(Buffer.from("not a GLB"));
     await steps(j.id, api, 8, download);
-    expect(get(j.id).status).toBe("failed");
+    expect((await get(j.id)).status).toBe("failed");
     expect(download).toHaveBeenCalledTimes(1);
-    expect(owned(p.id, p.owner)).toMatchObject({
+    expect(await owned(p.id, p.owner)).toMatchObject({
       modelAsset: p.modelAsset,
       approved: 1,
     });
@@ -366,25 +399,25 @@ describe("durable hero movement", () => {
       { params: Promise.resolve({ path: ["projects", p.id, "drawing"] }) },
     );
     expect(replaced.status).toBe(200);
-    expect(owned(p.id, p.owner)).toMatchObject({
+    expect(await owned(p.id, p.owner)).toMatchObject({
       revision: 2,
       modelAsset: null,
     });
     await expect(deleteProject(p.id)).resolves.toBeUndefined();
-    expect(() => owned(p.id, p.owner)).toThrow("not found");
+    await expect(owned(p.id, p.owner)).rejects.toThrow("not found");
   });
 
   it("terminates an oversized streaming download instead of fetching it forever", async () => {
     const p = await hero(),
-      j = requestMotion(p, randomUUID()),
+      j = await requestMotion(p, randomUUID()),
       api = provider();
     const download = vi
       .fn()
       .mockRejectedValue(new InvalidModelError("Model exceeds 25 MB."));
     await steps(j.id, api, 8, download);
-    expect(get(j.id).status).toBe("failed");
+    expect((await get(j.id)).status).toBe("failed");
     expect(download).toHaveBeenCalledTimes(1);
-    expect(owned(p.id, p.owner)).toMatchObject({
+    expect(await owned(p.id, p.owner)).toMatchObject({
       modelAsset: p.modelAsset,
       approved: 1,
     });
@@ -392,18 +425,18 @@ describe("durable hero movement", () => {
 
   it("cannot replace a newer hero when completion becomes stale during download", async () => {
     const p = await hero(),
-      j = requestMotion(p, randomUUID()),
+      j = await requestMotion(p, randomUUID()),
       api = provider();
     await steps(j.id, api, 5);
     await steps(j.id, api, 1, async () => {
-      db.update(projects)
+      await db
+        .update(projects)
         .set({ revision: 2, source: "procedural" })
-        .where(eq(projects.id, p.id))
-        .run();
+        .where(eq(projects.id, p.id));
       return readFile("tests/fixtures/animated.glb");
     });
-    expect(get(j.id).status).toBe("failed");
-    expect(owned(p.id, p.owner)).toMatchObject({
+    expect((await get(j.id)).status).toBe("failed");
+    expect(await owned(p.id, p.owner)).toMatchObject({
       modelAsset: p.modelAsset,
       approved: 1,
       revision: 2,
@@ -412,17 +445,17 @@ describe("durable hero movement", () => {
 
   it("fences expired workers before final attachment", async () => {
     const p = await hero(),
-      j = requestMotion(p, randomUUID()),
+      j = await requestMotion(p, randomUUID()),
       api = provider();
     await steps(j.id, api, 5);
     await steps(j.id, api, 1, async () => {
-      due(j.id);
-      const newer = motionRepository.claim()!;
+      await due(j.id);
+      const newer = (await motionRepository.claim())!;
       expect(newer).toBeTruthy();
       return readFile("tests/fixtures/animated.glb");
     });
-    expect(get(j.id).status).not.toBe("ready");
-    expect(owned(p.id, p.owner)).toMatchObject({
+    expect((await get(j.id)).status).not.toBe("ready");
+    expect(await owned(p.id, p.owner)).toMatchObject({
       modelAsset: p.modelAsset,
       approved: 1,
     });
@@ -430,17 +463,23 @@ describe("durable hero movement", () => {
 
   it("guards replacement and deletion and retains quota history after deletion", async () => {
     const p = await hero(),
-      j = requestMotion(p, randomUUID());
-    expect(() => requestGeneration(p, randomUUID())).toThrow("movement finish");
+      j = await requestMotion(p, randomUUID());
+    await expect(requestGeneration(p, randomUUID())).rejects.toThrow(
+      "movement finish",
+    );
     await expect(deleteProject(p.id)).rejects.toThrow("movement finish");
     expect((await request(p, "drawing", {})).status).toBe(409);
-    db.update(motionJobs)
+    await db
+      .update(motionJobs)
       .set({ status: "failed" })
-      .where(eq(motionJobs.id, j.id))
-      .run();
+      .where(eq(motionJobs.id, j.id));
     await deleteProject(p.id);
     expect(
-      sqlite.prepare("SELECT id FROM generation_usage WHERE id=?").get(j.id),
+      (
+        await query<{ id: string }>(
+          sql`SELECT id FROM generation_usage WHERE id=${j.id}`,
+        )
+      )[0],
     ).toBeTruthy();
   });
 
@@ -449,18 +488,18 @@ describe("durable hero movement", () => {
     const oldQuota = env.quota;
     env.quota = 0;
     try {
-      expect(() => requestMotion(p, randomUUID())).toThrow("quota");
+      await expect(requestMotion(p, randomUUID())).rejects.toThrow("quota");
     } finally {
       env.quota = oldQuota;
     }
-    expect(() => requestMotion({ ...p, owner: "other" }, randomUUID())).toThrow(
-      "not found",
-    );
-    db.update(projects)
+    await expect(
+      requestMotion({ ...p, owner: "other" }, randomUUID()),
+    ).rejects.toThrow("not found");
+    await db
+      .update(projects)
       .set({ source: "procedural" })
-      .where(eq(projects.id, p.id))
-      .run();
-    expect(() => requestMotion(p, randomUUID())).toThrow("custom hero");
+      .where(eq(projects.id, p.id));
+    await expect(requestMotion(p, randomUUID())).rejects.toThrow("custom hero");
   });
 });
 
@@ -475,10 +514,10 @@ describe("animation endpoint and GLB guardrails", () => {
       expect((await request(p)).status).toBe(503);
       env.mock = true;
       expect((await request(p)).status).toBe(403);
-      db.update(sessions)
+      await db
+        .update(sessions)
         .set({ unlocked: 1 })
-        .where(eq(sessions.id, p.owner))
-        .run();
+        .where(eq(sessions.id, p.owner));
       expect(
         (await request(p, "animate", { key: randomUUID(), consent: false }))
           .status,
@@ -489,7 +528,10 @@ describe("animation endpoint and GLB guardrails", () => {
       expect((await request({ ...p, cookie: randomUUID() })).status).toBe(401);
       const other = await hero();
       expect((await request({ ...p, cookie: other.cookie })).status).toBe(404);
-      expect((await request(p)).status).toBe(200);
+      const accepted = await request(p);
+      expect(accepted.status).toBe(200);
+      const job = await accepted.json();
+      expect(dispatchJob).toHaveBeenCalledExactlyOnceWith("motion", job.id);
     } finally {
       env.key = oldKey;
       env.mock = oldMock;

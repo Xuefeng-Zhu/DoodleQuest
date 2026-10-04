@@ -1,34 +1,37 @@
 import { NextResponse } from "next/server";
-import Database from "better-sqlite3";
-import path from "node:path";
+import { sql } from "drizzle-orm";
+import { db, ready } from "@/server/db";
 import { env } from "@/server/env";
 import { runtimeHealth } from "@/server/health";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export function GET() {
-  const health = runtimeHealth({
-    dataDirectory: env.data,
-    runtimeId: process.env.DQ_RUNTIME_ID,
-    storageVerified: process.env.DQ_STORAGE_VERIFIED === "1",
-    databaseCheck: () => {
-      // Health checks never initialize or migrate a missing database.
-      const sqlite = new Database(path.join(env.data, "doodlequest.sqlite"), {
-        readonly: true,
-        fileMustExist: true,
-      });
-      try {
-        const migration = sqlite
-          .prepare("SELECT version FROM schema_migrations LIMIT 1")
-          .get();
-        if (!migration) throw new Error("Database migrations are not ready.");
-        return migration;
-      } finally {
-        sqlite.close();
-      }
-    },
-  });
+export async function GET() {
+  let database = false;
+  try {
+    await ready();
+    await db.execute(sql`SELECT 1`);
+    database = true;
+  } catch {}
+  // Vercel executes durable jobs through Workflow; it has no local worker
+  // heartbeat or persistent filesystem to probe. Asset bytes live in Postgres.
+  const health =
+    process.env.VERCEL || !process.env.DQ_RUNTIME_ID
+      ? {
+          ready: database,
+          database,
+          execution: process.env.VERCEL ? "vercel-workflow" : "local-workflow",
+        }
+      : runtimeHealth({
+          dataDirectory: env.data,
+          runtimeId: process.env.DQ_RUNTIME_ID,
+          storageVerified: process.env.DQ_STORAGE_VERIFIED === "1",
+          databaseCheck: () => {
+            if (!database) throw new Error("Database is not ready.");
+            return true;
+          },
+        });
   return NextResponse.json(health, {
     status: health.ready ? 200 : 503,
     headers: { "Cache-Control": "no-store" },

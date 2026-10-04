@@ -12,10 +12,11 @@ const require = createRequire(import.meta.url);
 try {
   const environment = prepareProductionEnvironment(process.env);
   Object.assign(process.env, environment);
-  // The persistent disk is mounted at runtime. Importing db runs idempotent
-  // migrations before either long-lived process can accept work.
-  const { sqlite } = await import("../src/server/db");
-  sqlite.close();
+  if (!process.env.DATABASE_URL)
+    throw new Error("The standalone production web/worker pair requires DATABASE_URL.");
+  const { ready, closeDatabase } = await import("../src/server/db");
+  await ready();
+  await closeDatabase();
   process.exitCode = await superviseProduction(
     [
       {

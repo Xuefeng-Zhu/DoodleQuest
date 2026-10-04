@@ -1,8 +1,8 @@
 import { randomBytes, createHash, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { eq, and, gt } from "drizzle-orm";
-import { db, sqlite } from "./db";
-import { sessions, projects, gifts } from "./schema";
+import { eq, and, gt, lt, sql } from "drizzle-orm";
+import { db, ready, transaction } from "./db";
+import { sessions, projects, gifts, rateLimits } from "./schema";
 import { env } from "./env";
 export class HttpError extends Error {
   constructor(
@@ -21,16 +21,21 @@ export function sameOrigin(req: NextRequest) {
   if (req.headers.get("sec-fetch-site") === "cross-site")
     throw new HttpError(403, "Cross-site action denied.");
 }
-export function owner(req: NextRequest) {
+export async function owner(req: NextRequest) {
+  await ready();
   const raw = req.cookies.get("dq_owner")?.value;
   const s = raw
-    ? db
-        .select()
-        .from(sessions)
-        .where(
-          and(eq(sessions.id, digest(raw)), gt(sessions.expiresAt, Date.now())),
-        )
-        .get()
+    ? (
+        await db
+          .select()
+          .from(sessions)
+          .where(
+            and(
+              eq(sessions.id, digest(raw)),
+              gt(sessions.expiresAt, Date.now()),
+            ),
+          )
+      )[0]
     : null;
   if (!s)
     throw new HttpError(
@@ -39,22 +44,26 @@ export function owner(req: NextRequest) {
     );
   return s;
 }
-export function createSession(req: NextRequest) {
-  let s;
+export async function createSession(req: NextRequest) {
+  await ready();
+  let existing;
   try {
-    s = owner(req);
-  } catch {}
-  if (s) return NextResponse.json({ ready: true, unlocked: !!s.unlocked });
+    existing = await owner(req);
+  } catch (error) {
+    if (!(error instanceof HttpError) || error.status !== 401) throw error;
+  }
+  if (existing)
+    return NextResponse.json({ ready: true, unlocked: !!existing.unlocked });
   const raw = token(),
     now = Date.now();
-  db.insert(sessions)
+  await db
+    .insert(sessions)
     .values({
       id: digest(raw),
       createdAt: now,
       expiresAt: now + 1000 * 60 * 60 * 24 * 90,
       unlocked: 0,
-    })
-    .run();
+    });
   const res = NextResponse.json({ ready: true, unlocked: false });
   res.cookies.set("dq_owner", raw, {
     httpOnly: true,
@@ -65,54 +74,55 @@ export function createSession(req: NextRequest) {
   });
   return res;
 }
-export function owned(id: string, ownerId: string) {
-  const p = db
+export async function owned(id: string, ownerId: string) {
+  await ready();
+  const [project] = await db
     .select()
     .from(projects)
-    .where(and(eq(projects.id, id), eq(projects.owner, ownerId)))
-    .get();
-  if (!p)
+    .where(and(eq(projects.id, id), eq(projects.owner, ownerId)));
+  if (!project)
     throw new HttpError(
       404,
       "This draft was not found in your creator session.",
     );
-  return p;
+  return project;
 }
-export function shared(t: string) {
-  const g = db
+export async function shared(t: string) {
+  await ready();
+  const [gift] = await db
     .select()
     .from(gifts)
-    .where(and(eq(gifts.token, t), eq(gifts.revoked, 0)))
-    .get();
-  if (!g) throw new HttpError(404, "This gift link is no longer available.");
-  return g;
+    .where(and(eq(gifts.token, t), eq(gifts.revoked, 0)));
+  if (!gift) throw new HttpError(404, "This gift link is no longer available.");
+  return gift;
 }
-export function rateLimit(key: string, limit: number, windowMs: number) {
-  sqlite
-    .transaction(() => {
-      const now = Date.now();
-      sqlite.prepare("DELETE FROM rate_limits WHERE untilAt < ?").run(now);
-      const r = sqlite
-        .prepare("SELECT count FROM rate_limits WHERE key=?")
-        .get(key) as { count: number } | undefined;
-      if (r && r.count >= limit)
-        throw new HttpError(429, "A little pause, please. Try again later.");
-      sqlite
-        .prepare(
-          "INSERT INTO rate_limits(key,count,untilAt) VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET count=count+1",
-        )
-        .run(key, now + windowMs);
-    })
-    .immediate();
+export async function rateLimit(key: string, limit: number, windowMs: number) {
+  await transaction(async () => {
+    const now = Date.now();
+    await db.delete(rateLimits).where(lt(rateLimits.untilAt, now));
+    const [current] = await db
+      .select()
+      .from(rateLimits)
+      .where(eq(rateLimits.key, key));
+    if (current && current.count >= limit)
+      throw new HttpError(429, "A little pause, please. Try again later.");
+    await db
+      .insert(rateLimits)
+      .values({ key, count: 1, untilAt: now + windowMs })
+      .onConflictDoUpdate({
+        target: rateLimits.key,
+        set: { count: sql`${rateLimits.count} + 1` },
+      });
+  });
 }
-export function unlock(id: string, code: string) {
-  rateLimit("access-global", 30, 15 * 60_000);
-  rateLimit("access:" + id, 5, 15 * 60_000);
+export async function unlock(id: string, code: string) {
+  await rateLimit("access-global", 30, 15 * 60_000);
+  await rateLimit("access:" + id, 5, 15 * 60_000);
   if (!env.code)
     throw new HttpError(503, "The host has not configured creator access.");
-  const a = Buffer.from(digest(code)),
-    b = Buffer.from(digest(env.code));
-  if (!timingSafeEqual(a, b))
+  if (
+    !timingSafeEqual(Buffer.from(digest(code)), Buffer.from(digest(env.code)))
+  )
     throw new HttpError(403, "That access code didn’t match.");
-  db.update(sessions).set({ unlocked: 1 }).where(eq(sessions.id, id)).run();
+  await db.update(sessions).set({ unlocked: 1 }).where(eq(sessions.id, id));
 }

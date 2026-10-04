@@ -2,7 +2,6 @@ import { spawn } from "node:child_process";
 import "../src/server/env";
 const children = [
   spawn("npm", ["run", "dev:web"], { stdio: "inherit", env: process.env }),
-  spawn("npm", ["run", "worker"], { stdio: "inherit", env: process.env }),
 ];
 let stopping = false;
 const stop = () => {

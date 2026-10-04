@@ -1,0 +1,11 @@
+.env
+.env.*
+!.env.example
+data
+evidence
+test-results
+playwright-report
+coverage
+.workflow-data
+.next-e2e
+*.tsbuildinfo

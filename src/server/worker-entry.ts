@@ -5,6 +5,8 @@ import { LiveTripo } from "./tripo";
 import { MockTripo, mockDownload } from "./mock";
 import { flushDeletedFiles } from "./cleanup";
 import { workerReadiness } from "./health";
+if (env.production && !env.databaseUrl)
+  throw new Error("Standalone production workers require DATABASE_URL.");
 let running = true;
 const runtimeId = process.env.DQ_RUNTIME_ID || "standalone";
 const readiness = workerReadiness(env.data, runtimeId);

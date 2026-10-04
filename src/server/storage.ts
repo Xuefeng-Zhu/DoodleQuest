@@ -1,41 +1,68 @@
-import { mkdir, writeFile, readFile, unlink } from "node:fs/promises";
-import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { lookup } from "node:dns/promises";
 import sharp from "sharp";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { validateBytes } from "gltf-validator";
 import { env } from "./env";
-import { db } from "./db";
-import { assets } from "./schema";
+import { db, ready, transaction } from "./db";
+import { assets, assetBlobs } from "./schema";
 import { HttpError } from "./security";
 export interface AssetStorage {
   put(data: Buffer, extension: string): Promise<string>;
   read(key: string): Promise<Buffer>;
   remove(key: string): Promise<void>;
 }
-export class LocalStorage implements AssetStorage {
-  private filename(key: string) {
+export class DatabaseStorage implements AssetStorage {
+  private validateKey(key: string) {
     if (!/^[a-f0-9-]+\.(png|glb)$/.test(key))
       throw new Error("Invalid asset key");
-    return path.join(env.data, "assets", key);
-  }
-  async put(data: Buffer, extension: string) {
-    const key = `${randomUUID()}.${extension}`;
-    await mkdir(path.join(env.data, "assets"), { recursive: true });
-    await writeFile(this.filename(key), data, { flag: "wx", mode: 0o600 });
     return key;
   }
-  read(key: string) {
-    return readFile(this.filename(key));
+  async put(data: Buffer, extension: string) {
+    if (!["png", "glb"].includes(extension))
+      throw new Error("Invalid asset extension");
+    const key = `${randomUUID()}.${extension}`;
+    await transaction(async () => {
+      const [usage] = await db
+        .select({ bytes: sql<string>`COALESCE(SUM(${assetBlobs.bytes}), 0)` })
+        .from(assetBlobs);
+      if (Number(usage.bytes) + data.length > env.assetBudget)
+        throw new HttpError(
+          507,
+          "The host's drawing and model storage is full. Delete an unused project before trying again.",
+        );
+      await db
+        .insert(assetBlobs)
+        .values({
+          filename: key,
+          data,
+          bytes: data.length,
+          createdAt: Date.now(),
+        });
+    });
+    return key;
+  }
+  read(key: string): Promise<Buffer> {
+    this.validateKey(key);
+    return this.readBytes(key);
+  }
+  private async readBytes(key: string) {
+    await ready();
+    const [record] = await db
+      .select({ data: assetBlobs.data })
+      .from(assetBlobs)
+      .where(eq(assetBlobs.filename, key));
+    if (!record) throw new HttpError(404, "Asset unavailable.");
+    return Buffer.from(record.data);
   }
   async remove(key: string) {
-    await unlink(this.filename(key)).catch((e) => {
-      if (e.code !== "ENOENT") throw e;
+    this.validateKey(key);
+    await transaction(async () => {
+      await db.delete(assetBlobs).where(eq(assetBlobs.filename, key));
     });
   }
 }
-export const storage = new LocalStorage();
+export const storage = new DatabaseStorage();
 /** A completed provider artifact violates a fixed local safety budget. */
 export class InvalidModelError extends Error {}
 export async function saveAsset(
@@ -44,10 +71,11 @@ export async function saveAsset(
   data: Buffer,
   metadata: object = {},
 ) {
-  const id = randomUUID(),
-    filename = await storage.put(data, kind === "model" ? "glb" : "png");
-  try {
-    db.insert(assets)
+  return transaction(async () => {
+    const id = randomUUID();
+    const filename = await storage.put(data, kind === "model" ? "glb" : "png");
+    await db
+      .insert(assets)
       .values({
         id,
         projectId,
@@ -56,17 +84,16 @@ export async function saveAsset(
         bytes: data.length,
         metadata: JSON.stringify(metadata),
         createdAt: Date.now(),
-      })
-      .run();
-  } catch (e) {
-    await storage.remove(filename);
-    throw e;
-  }
-  return id;
+      });
+    return id;
+  });
 }
 export async function normalizeImage(data: Buffer, rotation = 0, crop = false) {
-  if (data.length > 10 * 1024 * 1024)
-    throw new HttpError(413, "Choose a JPEG or PNG smaller than 10 MB.");
+  if (data.length > env.uploadMaxBytes)
+    throw new HttpError(
+      413,
+      `Choose a JPEG or PNG smaller than ${Math.floor((env.uploadMaxBytes / (1024 * 1024)) * 100) / 100} MB.`,
+    );
   try {
     const s = sharp(data, { limitInputPixels: 24_000_000, failOn: "warning" });
     const m = await s.metadata();
@@ -301,8 +328,9 @@ export async function downloadModel(url: string) {
   }
   return Buffer.concat(chunks);
 }
-export function asset(id: string) {
-  const a = db.select().from(assets).where(eq(assets.id, id)).get();
+export async function asset(id: string) {
+  await ready();
+  const [a] = await db.select().from(assets).where(eq(assets.id, id));
   if (!a) throw new HttpError(404, "Asset unavailable.");
   return a;
 }

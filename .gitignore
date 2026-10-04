@@ -17,3 +17,8 @@ playwright-report/
 *.tsbuildinfo
 .next-e2e/
 evidence/recording-raw/
+.vercel/
+.workflow/
+.workflow-data/
+src/app/.well-known/workflow/
+/.swc
