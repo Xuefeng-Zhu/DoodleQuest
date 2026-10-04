@@ -230,6 +230,24 @@ describe("durable hero movement", () => {
     });
   });
 
+  it("returns the completed motion model and new approval state for an older approved draft", async () => {
+    const p = await hero(),
+      j = await requestMotion(p, randomUUID());
+    await steps(j.id, provider());
+
+    const view = await projectView(p);
+    expect(view.motionJob).toMatchObject({
+      id: j.id,
+      status: "ready",
+      inputAsset: p.modelAsset,
+    });
+    expect(view.motionJob?.finalAsset).toBeTruthy();
+    expect(view.modelAsset).toBe(view.motionJob?.finalAsset);
+    expect(view.modelAsset).not.toBe(p.modelAsset);
+    expect(view.modelUrl).toBe(`/api/assets/${view.motionJob?.finalAsset}`);
+    expect(view.approved).toBe(0);
+  });
+
   it("resumes saved stages and retries only local download without repeating paid work", async () => {
     const p = await hero(),
       j = await requestMotion(p, randomUUID()),

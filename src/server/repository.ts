@@ -210,68 +210,72 @@ export function publish(p: Project) {
     return gift;
   });
 }
-export async function projectView(p: Project) {
-  await ready();
-  const [motion] = await db
-    .select()
-    .from(motionJobs)
-    .where(eq(motionJobs.projectId, p.id))
-    .orderBy(desc(motionJobs.createdAt))
-    .limit(1);
-  const [job] = await db
-    .select()
-    .from(jobs)
-    .where(eq(jobs.projectId, p.id))
-    .orderBy(desc(jobs.createdAt))
-    .limit(1);
-  const drawing = await originalAsset(p);
-  const shares = await db
-    .select({
-      id: gifts.id,
-      token: gifts.token,
-      version: gifts.version,
-      revoked: gifts.revoked,
-    })
-    .from(gifts)
-    .where(eq(gifts.projectId, p.id));
-  return {
-    ...p,
-    owner: undefined,
-    config: GiftConfigSchema.parse(JSON.parse(p.config)),
-    job: job
-      ? {
-          id: job.id,
-          status: job.status,
-          providerStatus: job.providerStatus,
-          providerId: job.providerId,
-          progress: job.progress,
-          lastError: job.lastError,
-          createdAt: job.createdAt,
-          attempts: job.attempts,
-          inputRevision: job.inputRevision,
-          finalAsset: job.finalAsset,
-          model: job.model,
-        }
-      : null,
-    motionJob: motion
-      ? {
-          id: motion.id,
-          status: motion.status,
-          stage: motion.stage,
-          progress: motion.progress,
-          lastError: motion.lastError,
-          inputAsset: motion.inputAsset,
-          inputRevision: motion.inputRevision,
-          finalAsset: motion.finalAsset,
-          rigType: motion.rigType,
-          createdAt: motion.createdAt,
-          attempts: motion.attempts,
-        }
-      : null,
-    drawingUrl: drawing ? `/api/assets/${drawing}` : null,
-    modelUrl: p.modelAsset ? `/api/assets/${p.modelAsset}` : null,
-    shares,
-  };
+export function projectView(p: Project) {
+  return transaction(async () => {
+    // Read the project and its jobs under the workers' commit lock so a ready
+    // job cannot be paired with the caller's pre-completion model or approval.
+    p = await currentProject(p);
+    const [motion] = await db
+      .select()
+      .from(motionJobs)
+      .where(eq(motionJobs.projectId, p.id))
+      .orderBy(desc(motionJobs.createdAt))
+      .limit(1);
+    const [job] = await db
+      .select()
+      .from(jobs)
+      .where(eq(jobs.projectId, p.id))
+      .orderBy(desc(jobs.createdAt))
+      .limit(1);
+    const drawing = await originalAsset(p);
+    const shares = await db
+      .select({
+        id: gifts.id,
+        token: gifts.token,
+        version: gifts.version,
+        revoked: gifts.revoked,
+      })
+      .from(gifts)
+      .where(eq(gifts.projectId, p.id));
+    return {
+      ...p,
+      owner: undefined,
+      config: GiftConfigSchema.parse(JSON.parse(p.config)),
+      job: job
+        ? {
+            id: job.id,
+            status: job.status,
+            providerStatus: job.providerStatus,
+            providerId: job.providerId,
+            progress: job.progress,
+            lastError: job.lastError,
+            createdAt: job.createdAt,
+            attempts: job.attempts,
+            inputRevision: job.inputRevision,
+            finalAsset: job.finalAsset,
+            model: job.model,
+          }
+        : null,
+      motionJob: motion
+        ? {
+            id: motion.id,
+            status: motion.status,
+            stage: motion.stage,
+            progress: motion.progress,
+            lastError: motion.lastError,
+            inputAsset: motion.inputAsset,
+            inputRevision: motion.inputRevision,
+            finalAsset: motion.finalAsset,
+            rigType: motion.rigType,
+            createdAt: motion.createdAt,
+            attempts: motion.attempts,
+          }
+        : null,
+      drawingUrl: drawing ? `/api/assets/${drawing}` : null,
+      modelUrl: p.modelAsset ? `/api/assets/${p.modelAsset}` : null,
+      shares,
+    };
+  });
 }
 
 async function currentProject(p: Project): Promise<Project> {

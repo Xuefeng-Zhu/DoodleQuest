@@ -1,3 +1,7 @@
+# Both processes must connect to the same external PostgreSQL database.
+# Set DATABASE_URL in .env (for example, a dedicated Neon branch). Compose
+# rejects a missing/empty URL before launching either process; embedded
+# PostgreSQL cannot be shared by the web and standalone worker processes.
 services:
   web:
     build: .
@@ -5,6 +9,7 @@ services:
     environment:
       NODE_ENV: production
       DATA_DIR: /data
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL to an external PostgreSQL connection string in .env}
     ports: ["127.0.0.1:3000:3000"]
     volumes: ["doodlequest-data:/data"]
     restart: unless-stopped
@@ -16,6 +21,7 @@ services:
     environment:
       NODE_ENV: production
       DATA_DIR: /data
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL to an external PostgreSQL connection string in .env}
     volumes: ["doodlequest-data:/data"]
     restart: unless-stopped
     init: true
