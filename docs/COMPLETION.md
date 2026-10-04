@@ -1,6 +1,18 @@
 # Completion and verification
 
-This working prototype has local application and live Tripo image-to-model evidence. It has no verified production deployment or submitted event entry. Dated sections retain their original test scopes; historical “not run” or “unverified” statements describe those earlier checks and do not override the reconciliation below.
+This working prototype has a public Vercel + Neon example deployment, local application checks and local live Tripo image-to-model evidence. No event entry has been submitted. Dated sections retain their original test scopes; historical “not run” or “unverified” statements describe those earlier checks and do not override the latest verification below.
+
+## Vercel and Neon hosted verification — 2026-10-03
+
+[DoodleQuest](https://doodlequest-six.vercel.app) is deployed on Vercel Hobby with Neon Free resource `neon-coffee-globe`, connected only to production. Application revision `37cac02` is deployed from `codex/vercel-neon-deployment`; [PR #1](https://github.com/Xuefeng-Zhu/DoodleQuest/pull/1) remains open and `main` is not merged. The deployment uses example mode with `GENERATION_QUOTA=0` and no Tripo API key. No paid plan or provider call was used.
+
+Fifteen hosted HTTP checks passed: public homepage; database readiness; example mode and upload limit; secure isolated creator sessions; draft creation; sample drawing storage; sample approval; gift publication at the production origin; persisted creator configuration and share state; matching creator asset hash; anonymous and foreign-creator access denial; persisted anonymous gift snapshot; matching anonymous gift asset hash; public recipient page; and snapshot immutability after subsequent draft edits. These checks verify real hosted PostgreSQL reads and writes, including the private drawing bytes.
+
+The hosted procedural 3D example was visually verified in Chrome, with its story completed through the accessible controls: bell puzzle, star, delivery and letter. The creator browser flow also passed sample selection, approval, personalization, save/reload and publication; a new recipient tab displayed the rendered 3D scene and saved title/name. Browser revocation displayed “Gift version 1 revoked” for the creator, and reloading the recipient tab displayed “This gift link is no longer available.” This is a hosted browser check, not a physical-device or performance guarantee. The [sanitized verification record](../evidence/vercel-neon/verification.json) and [published example screenshot](../evidence/vercel-neon/published-example.png) contain only fictional test content, with no gift token or credentials.
+
+A fresh production redeployment (`dpl_AAZLqqdLEP7MxwstaLfPUQH3qaAf`, same application revision `37cac02`) preserved saved configuration, share state and exact PNG hashes. Anonymous requests for private drafts/assets returned HTTP 401; a foreign creator received HTTP 404. The published snapshot remained unchanged after draft edits. Revocation then returned HTTP 404 for both the gift JSON and its shared asset. `/api/health` reported production/database readiness and `/api/mode` reported example mode with a 4,128,768-byte upload cap. The build compiled one workflow and 18 steps; no hosted Workflow run or provider call was exercised.
+
+Hosted Workflow execution, live Tripo generation/rigging, large GLB streaming, backup/restore, Safari/Firefox, physical mobile/audio behavior and the hosted recorded Tripo hero remain unverified. The deployed Pip hero is procedural; the existing Tripo walkthrough records a separate local run. Existing private local SQLite data and gifts were not imported or published.
 
 ## Vercel and Neon migration — 2026-10-03
 
@@ -13,7 +25,7 @@ Verified locally on this migration:
 - The native `pg` driver passed an isolated **PostgreSQL 17.11** smoke test using separate backend connections: persisted gifts and exact PNG/GLB bytes, concurrent last-slot quota/storage reservations, nested rollback, pool reopen and container restart. The temporary container and its anonymous volume were removed afterward.
 - The first full Chromium run passed **41 of 42** cases. A development-server configuration reload interrupted the long sharing/revocation case; that case then **passed its isolated rerun in 1.4 minutes** after configuration stabilized. All 42 distinct cases passed across those runs. Mocked generation refresh recovery and the full mocked rigging/shared-gift pipeline passed through the compiled local Workflow runtime.
 
-Hosted Neon connectivity, hosted Workflow execution, Vercel HTTPS and hosted streaming remain unverified. Vercel login was verified on the Hobby plan; Neon provisioning is awaiting the owner's agreement approval in Vercel Marketplace. No Vercel project or Neon database was created, no paid tier selected, and no Tripo credentials were transferred or provider calls made. Initial hosted configuration is example mode with `GENERATION_QUOTA=0`.
+At the end of this local migration check, provisioning was still pending owner approval and no Vercel project or Neon database had been created. Hosted verification now appears in the newer section above. The migration checks used no paid tier, Tripo credential transfer or provider call.
 
 ## Tripothon S1 evidence reconciliation — 2026-10-03
 

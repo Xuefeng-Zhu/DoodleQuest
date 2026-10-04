@@ -1,8 +1,10 @@
 # Vercel + Neon deployment
 
-Status: code migration is locally verified; hosted provisioning awaits owner approval of the Neon Marketplace agreements. See [dated verification](COMPLETION.md#vercel-and-neon-migration--2026-10-03). No hosted URL is claimed until the hosted acceptance checks pass.
+Status on October 3, 2026: [DoodleQuest is deployed](https://doodlequest-six.vercel.app) in example mode. Hosted HTTPS checks passed for Neon connectivity, sample drafts, approval, publication, isolated ownership, snapshot immutability, drawing-byte persistence across redeployment, and revocation. The rendered 3D example was visually verified and its story completed through the accessible controls to the letter. See [dated hosted verification](COMPLETION.md#vercel-and-neon-hosted-verification--2026-10-03).
 
-The target is Vercel Hobby with Neon Free. Create a dedicated Neon database through Vercel Storage, then connect it to the DoodleQuest project. Keep unrelated projects and databases separate. Select the free plan explicitly; no paid upgrade is needed for the example demo.
+The deployment uses Vercel Hobby and the dedicated Neon Free resource `neon-coffee-globe`, connected to DoodleQuest's production environment only. The deployed application revision is `37cac02` from `codex/vercel-neon-deployment`; [PR #1](https://github.com/Xuefeng-Zhu/DoodleQuest/pull/1) remains open and `main` has not been merged. No paid tier was selected and no Tripo credentials were transferred or provider calls made.
+
+The authenticated Vercel CLI deployed a clean Git archive of `37cac02`; Git auto-deployment is not configured for this project. Future updates can use the CLI again or intentionally connect the tested source branch. Pushing this PR branch alone does not update production.
 
 ## Configuration
 
@@ -37,8 +39,11 @@ Local `npm run dev` uses the same Workflow integration and embedded PostgreSQL w
 - Passed locally: PostgreSQL tests: ownership, rate/credit quotas, snapshot immutability, deletion and asset rollback.
 - Passed locally: Workflow application tests and compiled mock browser flows: job-specific claims, enqueue recovery and duplicate protection.
 - Passed: production build, private-file trace exclusions, native PostgreSQL 17.11 restart/concurrency smoke, and all 42 distinct browser cases across the full run and one focused rerun.
-- Hosted HTTPS: health check, sample draft, save/reload, approve/publish, separate recipient read, persistent asset fetch, revoke and verify access denial.
-- Live Tripo generation and animation remain separate provider checks. A working example deployment does not establish their hosted success.
+- Passed over hosted HTTPS: public homepage, database readiness, example mode/upload limit, secure isolated creator sessions, sample draft storage and approval, correct-origin publication, saved configuration/share state, matching creator and recipient drawing hashes, private asset denial for anonymous/foreign creators, anonymous snapshot/page access, and snapshot immutability after draft edits.
+- Passed in the hosted browser: visually rendered procedural 3D example and complete story through accessible controls to the letter.
+- Passed in the hosted creator/recipient browser flow: sample selection, approval, personalization, save/reload, publication, a rendered recipient scene with the saved title/name, and an unavailable-link message after revocation and recipient reload. See the [sanitized record](../evidence/vercel-neon/verification.json) and [example screenshot](../evidence/vercel-neon/published-example.png).
+- Passed after a fresh production redeployment: saved configuration, share state and exact PNG hashes remained unchanged. Revocation then denied the gift JSON and shared asset with HTTP 404.
+- Hosted Workflow execution, live Tripo generation/animation and large GLB streaming remain unverified. A working example deployment does not establish their success.
 
 ## Operations
 

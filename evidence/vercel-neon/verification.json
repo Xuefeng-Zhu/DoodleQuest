@@ -1,0 +1,67 @@
+{
+  "verifiedAt": "2026-10-04T03:27:48.854355+00:00",
+  "datePacific": "2026-10-03",
+  "productionUrl": "https://doodlequest-six.vercel.app",
+  "sourceCommit": "37cac02587ba7ff7dfb0e2f0033aabf653a1f2c3",
+  "sourceBranch": "codex/vercel-neon-deployment",
+  "pullRequest": "https://github.com/Xuefeng-Zhu/DoodleQuest/pull/1",
+  "deploymentId": "dpl_AAZLqqdLEP7MxwstaLfPUQH3qaAf",
+  "hosting": {
+    "platform": "Vercel",
+    "plan": "Hobby",
+    "framework": "Next.js",
+    "node": "24.x",
+    "region": "iad1",
+    "build": "READY"
+  },
+  "database": {
+    "provider": "Neon",
+    "plan": "Free",
+    "resource": "neon-coffee-globe",
+    "connectedEnvironments": [
+      "production"
+    ]
+  },
+  "configuration": {
+    "generationQuota": 0,
+    "assetPayloadBudgetBytes": 209715200,
+    "uploadLimitBytes": 4128768,
+    "mode": "example",
+    "providerCredentialsTransferred": false
+  },
+  "checks": {
+    "anonymousHomepage": 200,
+    "health": {
+      "ready": true,
+      "database": true,
+      "execution": "vercel-workflow"
+    },
+    "secureIsolatedSessions": true,
+    "sampleDraftCreatedAndApproved": true,
+    "savedConfigAndPngPersisted": true,
+    "publishedSnapshotImmutableAfterDraftEdit": true,
+    "anonymousRecipientGiftAndPng": 200,
+    "anonymousPrivateDraftAndPng": 401,
+    "foreignOwnerDraftAndPng": 404,
+    "configGiftAndPngHashesSurvivedRedeploy": true,
+    "revokedGiftAndPng": 404,
+    "browserDraftReload": true,
+    "browserSaveApprovePublish": true,
+    "rendered3DGiftVisuallyVerified": true,
+    "exampleAdventureCompletedToLetter": true,
+    "browserRevokedGiftUnavailable": true
+  },
+  "scope": "Fictional procedural Pip gifts only. No paid provider calls, private local gifts or credentials were published.",
+  "notVerified": [
+    "hosted Tripo generation and rigging",
+    "hosted Workflow execution",
+    "large GLB response streaming",
+    "database backup restore",
+    "Safari Firefox and physical mobile audio"
+  ],
+  "screenshot": {
+    "path": "published-example.png",
+    "sha256": "2faeb1a1d69883ca47587bd95a2f9e3d4c718209d7c3c8e6f22b64f075ad6847",
+    "content": "Fictional Jamie Example gift, rendered in production Chrome; no gift token, credential or account data visible."
+  }
+}

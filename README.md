@@ -4,11 +4,15 @@
 
 Create a character, write a personal note, and share an unlisted adventure. The recipient rings three bells, collects a star, and delivers it to open their letter. The included Pip example works without credentials or paid generation.
 
+[Play the hosted Pip example](https://doodlequest-six.vercel.app/example) · [Create a sample gift](https://doodlequest-six.vercel.app/create). The public deployment uses Vercel Hobby and Neon Free in example mode; paid generation is disabled. The rendered 3D example was visually verified and its story completed through the accessible controls to the letter.
+
 ![The procedural Pip example at the bell gate](evidence/gameplay-desktop.png)
 
 ## Quick start
 
 Use **Node.js 24 and npm**, matching the repository's Docker image. Run these commands from the repository root:
+
+The deployed PostgreSQL/Workflow revision is `37cac02` on `codex/vercel-neon-deployment`. Until [PR #1](https://github.com/Xuefeng-Zhu/DoodleQuest/pull/1) is merged, use that branch when reproducing the hosted version from a fresh clone.
 
 ```sh
 npm ci
@@ -66,8 +70,8 @@ Mouse, touch and keyboard controls share the same quest. Pause, reduced motion, 
 
 ## Delivery status
 
-The **Tripothon S1 preparation was reconciled on October 3, 2026**. Two live Tripo image-to-model runs succeeded. The [87.33-second current walkthrough](evidence/tripothon-s1/walkthrough.mp4) shows the generated Mom & Dad model and a corrected gift from “Your little artist”; it reuses that model without another generation. It is a silent sequence of actual local browser captures, with generation waits visibly accelerated 8×. The [asset board](evidence/tripothon-s1/asset-board.html) and [submission notes](docs/SUBMISSION.md) accompany this local packet. No event entry has been submitted. The [GitHub repository](https://github.com/Xuefeng-Zhu/DoodleQuest) is now public, with anonymous access verified. Judges can access the source and reviewed media; a hosted playable demo is still pending.
+The **Tripothon S1 preparation was reconciled on October 3, 2026**. Two live Tripo image-to-model runs succeeded locally. The [87.33-second current walkthrough](evidence/tripothon-s1/walkthrough.mp4) shows the generated Mom & Dad model and a corrected gift from “Your little artist”; it reuses that model without another generation. It is a silent sequence of actual local browser captures, with generation waits visibly accelerated 8×. The [asset board](evidence/tripothon-s1/asset-board.html) and [submission notes](docs/SUBMISSION.md) accompany this local packet. No event entry has been submitted. The [GitHub repository](https://github.com/Xuefeng-Zhu/DoodleQuest) is public, with anonymous access verified. Judges can access the source, reviewed media and [hosted procedural Pip demo](https://doodlequest-six.vercel.app/example). The recorded Tripo hero is not hosted in that demo.
 
-[COMPLETION.md](docs/COMPLETION.md) records checks with their dates and scopes; older test results are not a claim of a fresh full-suite run. The [92.56-second baseline walkthrough](evidence/walkthrough.mp4) is retained as historical procedural-Pip evidence. Live Tripo rigging, Docker deployment, hosted HTTPS, backup/restore, Safari/Firefox and physical device/audio behavior remain unverified. The current deployment target is **Vercel with Neon PostgreSQL**. Records and private asset bytes are durable in PostgreSQL; Vercel Workflows handles generation. See [deployment status and setup](docs/VERCEL.md).
+[COMPLETION.md](docs/COMPLETION.md) records checks with their dates and scopes. Hosted HTTPS checks passed for Neon readiness, sample draft/approval/publication, ownership, immutable snapshots, exact drawing-byte persistence across redeployment and revocation of gift/asset access. The rendered 3D example was visually verified and its story completed through accessible controls. Hosted Workflow execution, live Tripo generation/rigging, large GLB streaming, Docker deployment, backup/restore, Safari/Firefox and physical device/audio behavior remain unverified. The [92.56-second baseline walkthrough](evidence/walkthrough.mp4) remains historical procedural-Pip evidence. See [deployment status and setup](docs/VERCEL.md).
 
 Gift links are **unlisted, not fully private**. Anyone with a link can view its saved snapshot. Revocation blocks future requests but cannot retract downloaded copies. Project deletion removes local access and queues local file cleanup; provider-side deletion is not promised. Read the [privacy and sharing details](docs/experience.md#privacy-and-sharing) before using personal artwork.

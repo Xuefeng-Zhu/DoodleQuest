@@ -26,7 +26,7 @@ Our demonstration tells a fictional child-to-parents story: a gift for Mom & Dad
 
 The gift is the world itself. Personalization changes who the hero is, whom the adventure is for, and what arrives at the end. A letter, optional drawing keepsake, responsive flowers and a returning bell melody make the ending feel earned. The note remains the creator's own words.
 
-DoodleQuest is a working local prototype with saved drafts, explicit hero approval, playable previews, immutable gift versions, revocation and deletion controls. Keyboard controls, reduced motion, low rendering quality and a readable no-WebGL path support different ways to play. Live generation is protected by creator access, transfer consent and a persistent quota. Recipient gameplay reuses the saved model and makes no generation request.
+DoodleQuest is a working browser prototype with a public procedural-example deployment, saved drafts, explicit hero approval, playable previews, immutable gift versions, revocation and deletion controls. Keyboard controls, reduced motion, low rendering quality and a readable no-WebGL path support different ways to play. The hosted example has paid generation disabled. Live generation, verified separately in local runs, is protected by creator access, transfer consent and a persistent quota. Recipient gameplay reuses the saved model and makes no generation request.
 
 ## Problem, audience and theme
 
@@ -79,19 +79,23 @@ Our presentation choices:
 
 ## Playable demo and judge instructions
 
-**Public demo URL: TODO — no hosted judge URL is verified.** A localhost URL and a recording do not satisfy playable access for remote judges.
+**Public demo:** [DoodleQuest](https://doodlequest-six.vercel.app), running on Vercel Hobby with Neon Free in example mode. The procedural Pip example is publicly playable; paid Tripo generation is disabled.
 
-**Repository:** [Xuefeng-Zhu/DoodleQuest](https://github.com/Xuefeng-Zhu/DoodleQuest) — now **public** at the user's request, with anonymous GitHub access verified. Source and reviewed media are accessible to judges. No root license file is currently present; making the repository public does not establish a reuse license. A hosted playable demo is still pending.
+**Repository:** [Xuefeng-Zhu/DoodleQuest](https://github.com/Xuefeng-Zhu/DoodleQuest) — **public** at the user's request, with anonymous GitHub access verified. Source and reviewed media are accessible to judges. No root license file is currently present; making the repository public does not establish a reuse license. The deployed application revision is `37cac02` on `codex/vercel-neon-deployment`; [PR #1](https://github.com/Xuefeng-Zhu/DoodleQuest/pull/1) remains open and `main` is not merged.
+
+1. Open the [Pip example](https://doodlequest-six.vercel.app/example), start the gift and follow the scene or accessible controls to the bell gate.
+2. Ring circle → triangle → star, collect the star, deliver it to the mailbox and open the letter. Replay is available. The rendered 3D example and this complete story were verified in the hosted browser.
+3. Open the [creator](https://doodlequest-six.vercel.app/create), choose **Try it with our Pip drawing**, approve the hero, add words, preview, wrap and publish. A recipient needs no account. Keep the creator browser's cookie to manage the gift afterward.
 
 Local fallback from the public source repository:
 
-1. Use Node.js 24 and npm. In a fresh checkout, run `npm ci`.
+1. Use Node.js 24 and npm. Until PR #1 is merged, check out `codex/vercel-neon-deployment` to reproduce the hosted version. In that fresh checkout, run `npm ci`.
 2. Copy `.env.example` to `.env` only when no local environment file exists. Leave credentials blank for procedural example mode.
 3. Run `npm run db:migrate`, `npm run db:seed`, then `npm run dev`.
 4. Open `http://localhost:3000/example`. Start the gift and follow the visible controls to the bell gate. Ring circle → triangle → star, collect the star, deliver it to the mailbox and open the letter. Replay is available.
 5. Open `/create`, choose **Try it with our Pip drawing**, approve the hero, add words, preview, wrap and publish. Open the link in a separate browser context to exercise the recipient flow.
 
-This fallback uses authored procedural Pip. It demonstrates the complete product without a provider key; it does **not** reproduce the Tripo hero in the supplied recording. Judge access to the recorded generated gift still requires a reviewed hosting or distribution plan. Do not package the runtime database, creator cookies, `.env` files or provider keys.
+The hosted demo and local fallback use authored procedural Pip. They demonstrate the gift flow without a provider key; they do **not** reproduce the Tripo hero in the supplied recording or establish hosted Tripo/Workflow success. Judge access to the recorded generated gift still requires a reviewed hosting or distribution plan. Do not package the runtime database, creator cookies, `.env` files or provider keys.
 
 ## Video and visual materials
 
@@ -110,10 +114,10 @@ Show the source artwork, generated hero preview, personalized gift opening, star
 
 ## Verification and limitations
 
-- Fresh October 3 check: `npm test` — **96 tests passed across 11 files** in 2.43 seconds on application revision `72dda95`.
+- October 3 migration checks: **147 tests across 16 files**, TypeScript and production build passed. All **42 distinct Chromium cases** passed across the full run and one focused rerun. PostgreSQL 17.11 concurrency/restart checks passed locally. These supersede the earlier submission-preparation run of 96 tests on revision `72dda95`; detailed scopes remain in [COMPLETION.md](docs/COMPLETION.md).
+- Hosted HTTPS checks passed on application revision `37cac02`: Neon readiness, sample draft/approval/publication, isolated ownership, immutable gift snapshots, exact drawing bytes across redeployment, anonymous recipient access and gift/asset denial after revocation. The rendered procedural 3D example was visually verified and its story completed through accessible controls to the letter.
 - Recorded live provider results and media were re-inspected for this package; no new paid call was made.
-- Prior Chromium, TypeScript and production-build results are dated in [COMPLETION.md](docs/COMPLETION.md). They were not all rerun for this documentation-only preparation.
-- Hosting, HTTPS, Docker operation, backup/restore, Safari/Firefox, physical mobile hardware and physical speaker playback remain unverified.
+- Hosted Workflow execution, hosted live Tripo generation/rigging, large GLB streaming, Docker application deployment, backup/restore, Safari/Firefox, physical mobile hardware and physical speaker playback remain unverified. Compiling Workflow routes does not establish a hosted run.
 - Unlisted links are accessible to anyone who has the link. Revocation cannot retract downloaded copies. Owner-cookie loss has no recovery, and provider-side deletion is not promised.
 - No child testing, formal privacy certification, user adoption or commercial validation is claimed.
 
@@ -121,9 +125,10 @@ Show the source artwork, generated hero preview, personalized gift opening, star
 
 - [x] Confirm Tripothon S1 and prepare Game + Tripo positioning.
 - [x] Draft copy grounded in actual product behavior and live evidence.
-- [x] Identify a credential-free local demo path and document its procedural hero.
+- [x] Provide hosted and local demo paths and document their procedural Pip hero.
 - [x] Finish media privacy review, visual inspection and package integrity checks; local gift links are masked in the shareable walkthrough.
-- [ ] Provide a judge-accessible playable demo, including the recorded Tripo hero if entering its tool track.
+- [x] Provide a judge-accessible procedural Pip demo with verified hosted persistence and recipient access.
+- [ ] Resolve playable judge access to the recorded Tripo hero for the proposed tool-track entry.
 - [x] Make the source repository and reviewed media public; anonymous repository access verified.
 - [ ] Provide the walkthrough and asset board in the destinations or upload fields required by the event portal.
 - [ ] Approve opening a remote draft; inspect the remaining form and adapt this copy to its actual limits.
