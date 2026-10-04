@@ -4,11 +4,15 @@
 
 Create a character, write a personal note, and share an unlisted adventure. The recipient rings three bells, collects a star, and delivers it to open their letter. The included Pip example works without credentials or paid generation.
 
+[Play the hosted Pip example](https://doodlequest-six.vercel.app/example) · [Create a sample gift](https://doodlequest-six.vercel.app/create). The public deployment uses Vercel Hobby and Neon Free in example mode; paid generation is disabled. The rendered 3D example was visually verified and its story completed through the accessible controls to the letter.
+
 ![The procedural Pip example at the bell gate](evidence/gameplay-desktop.png)
 
 ## Quick start
 
 Use **Node.js 24 and npm**, matching the repository's Docker image. Run these commands from the repository root:
+
+The deployed PostgreSQL/Workflow revision is `37cac02` on `codex/vercel-neon-deployment`. Until [PR #1](https://github.com/Xuefeng-Zhu/DoodleQuest/pull/1) is merged, use that branch when reproducing the hosted version from a fresh clone.
 
 ```sh
 npm ci
@@ -20,7 +24,7 @@ npm run dev
 
 Copy the environment template only on first setup; keep an existing `.env`. Leave its credentials blank to use example mode. `db:seed` renders the repository's Pip drawing and initializes the schema; it makes no provider calls.
 
-Open [http://localhost:3000](http://localhost:3000), the default `APP_ORIGIN`. `npm run dev` starts both Next.js and the durable Node worker; Ctrl+C stops both. Use the exact configured origin for creator actions: `localhost` and `127.0.0.1` are not interchangeable.
+Open [http://localhost:3000](http://localhost:3000), the default `APP_ORIGIN`. `npm run dev` starts Next.js with durable Workflow jobs. With no `DATABASE_URL`, local development uses embedded PostgreSQL under `DATA_DIR/postgres`; Vercel requires a Neon connection. Use the exact configured origin for creator actions: `localhost` and `127.0.0.1` are not interchangeable.
 
 | Route                                       | What to try                                                                                                                                         |
 | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -36,7 +40,7 @@ Drafts are stored on the server, with ownership tied to this browser's cookie. K
 | Mode                       | Configuration                                          | What it proves                                                                                                                                                                               |
 | -------------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Example** (default)      | Leave `TRIPO_API_KEY` blank.                           | Complete quest, draft saving, approval, sharing, revocation and deletion with authored procedural Pip. **Pip is not Tripo-generated.** Custom uploads need live generation to become a hero. |
-| **Live**                   | Server-side `TRIPO_API_KEY` and `CREATOR_ACCESS_CODE`. | The adapter uploads to Tripo, submits a task, polls and validates a protected GLB. Successful live generation remains unverified in the recorded delivery.                                   |
+| **Live**                   | Server-side `TRIPO_API_KEY` and `CREATOR_ACCESS_CODE`. | Two successful Tripo image-to-model runs and local gameplay with their validated GLBs are recorded in the [verification record](docs/COMPLETION.md). Live rigging is still unverified.       |
 | **Mock** (automated tests) | `E2E_MOCK_PROVIDER=1`, nonproduction only.             | Deterministic provider responses and a labeled octahedron GLB. Production rejects this flag; mock results are not live evidence.                                                             |
 
 Live browser generation requires an unlocked creator session, explicit drawing-transfer consent and an available quota reservation. The default cap is **10 lifetime attempts for the installation and for each session**, including failed or uncertain attempts. See [configuration](docs/configuration.md) before enabling it and the [live smoke test](docs/operations.md#live-smoke-test) before claiming provider success.
@@ -51,22 +55,23 @@ Mouse, touch and keyboard controls share the same quest. Pause, reduced motion, 
 
 ## Documentation
 
-| Guide                                                                         | Use it for                                                                            |
-| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| [Configuration](docs/configuration.md)                                        | Environment variables, modes, credentials, quotas and local ports.                    |
-| [Operations and troubleshooting](docs/operations.md)                          | Web/worker deployment, persistent storage, generation recovery and live verification. |
-| [Creator and recipient guide](docs/experience.md)                             | Making, playing, sharing, revoking and deleting gifts.                                |
-| [Contributing](docs/CONTRIBUTING.md)                                          | Development commands, focused tests, recording evidence and Git conventions.          |
-| [Architecture](docs/ARCHITECTURE.md)                                          | Source map, ownership, snapshots, worker reliability and rendering budgets.           |
-| [Verification record](docs/COMPLETION.md)                                     | Dated check results, measurements and unverified layers.                              |
-| [Asset provenance](docs/ASSET_PROVENANCE.md)                                  | Origins and permissions for drawings, geometry, music and generated assets.           |
-| [Demo script](docs/DEMO_SCRIPT.md) · [Asset board](evidence/asset-board.html) | Recorded product evidence and suggested narration.                                    |
-| [Drawing reveal](docs/REVEAL.md) · [Submission notes](docs/SUBMISSION.md)     | Feature-specific evidence and the conditional event submission draft.                 |
+| Guide                                                                                                | Use it for                                                                            |
+| ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| [Configuration](docs/configuration.md)                                                               | Environment variables, modes, credentials, quotas and local ports.                    |
+| [Operations and troubleshooting](docs/operations.md)                                                 | Web/worker deployment, persistent storage, generation recovery and live verification. |
+| [Vercel + Neon deployment](docs/VERCEL.md)                                                           | Free hosting setup, database persistence, Workflow jobs and hosted checks.            |
+| [Creator and recipient guide](docs/experience.md)                                                    | Making, playing, sharing, revoking and deleting gifts.                                |
+| [Contributing](docs/CONTRIBUTING.md)                                                                 | Development commands, focused tests, recording evidence and Git conventions.          |
+| [Architecture](docs/ARCHITECTURE.md)                                                                 | Source map, ownership, snapshots, worker reliability and rendering budgets.           |
+| [Verification record](docs/COMPLETION.md)                                                            | Dated check results, measurements and unverified layers.                              |
+| [Asset provenance](docs/ASSET_PROVENANCE.md)                                                         | Origins and permissions for drawings, geometry, music and generated assets.           |
+| [Demo script](docs/DEMO_SCRIPT.md) · [Tripothon asset board](evidence/tripothon-s1/asset-board.html) | Recorded product evidence and suggested narration.                                    |
+| [Drawing reveal](docs/REVEAL.md) · [Submission notes](docs/SUBMISSION.md)                            | Feature-specific evidence and the Tripothon S1 submission preparation.                |
 
 ## Delivery status
 
-This is a locally verified prototype. [COMPLETION.md](docs/COMPLETION.md) records unit, Chromium, build and rendering checks with their dates and scopes; it is not a claim that every check has just been rerun. The [92.56-second baseline walkthrough](evidence/walkthrough.mp4) uses procedural Pip and predates later feature recordings.
+The **Tripothon S1 preparation was reconciled on October 3, 2026**. Two live Tripo image-to-model runs succeeded locally. The [87.33-second current walkthrough](evidence/tripothon-s1/walkthrough.mp4) shows the generated Mom & Dad model and a corrected gift from “Your little artist”; it reuses that model without another generation. It is a silent sequence of actual local browser captures, with generation waits visibly accelerated 8×. The [asset board](evidence/tripothon-s1/asset-board.html) and [submission notes](docs/SUBMISSION.md) accompany this local packet. No event entry has been submitted. The [GitHub repository](https://github.com/Xuefeng-Zhu/DoodleQuest) is public, with anonymous access verified. Judges can access the source, reviewed media and [hosted procedural Pip demo](https://doodlequest-six.vercel.app/example). The recorded Tripo hero is not hosted in that demo.
 
-Live Tripo output, Docker deployment, hosted HTTPS, backup/restore, Safari/Firefox and physical device/audio behavior remain unverified in that record. Deployment requires **one persistent node with shared local SQLite and asset storage**; ephemeral serverless hosting is unsuitable.
+[COMPLETION.md](docs/COMPLETION.md) records checks with their dates and scopes. Hosted HTTPS checks passed for Neon readiness, sample draft/approval/publication, ownership, immutable snapshots, exact drawing-byte persistence across redeployment and revocation of gift/asset access. The rendered 3D example was visually verified and its story completed through accessible controls. Hosted Workflow execution, live Tripo generation/rigging, large GLB streaming, Docker deployment, backup/restore, Safari/Firefox and physical device/audio behavior remain unverified. The [92.56-second baseline walkthrough](evidence/walkthrough.mp4) remains historical procedural-Pip evidence. See [deployment status and setup](docs/VERCEL.md).
 
 Gift links are **unlisted, not fully private**. Anyone with a link can view its saved snapshot. Revocation blocks future requests but cannot retract downloaded copies. Project deletion removes local access and queues local file cleanup; provider-side deletion is not promised. Read the [privacy and sharing details](docs/experience.md#privacy-and-sharing) before using personal artwork.

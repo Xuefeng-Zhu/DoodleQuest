@@ -1,0 +1,34 @@
+# One service owns both processes and the local SQLite/assets disk.
+# First deploy is example mode; enabling Tripo requires separately approved secrets.
+services:
+  - type: web
+    name: doodlequest
+    runtime: node
+    branch: codex/render-deployment
+    region: oregon
+    plan: 0.5c-512mb
+    numInstances: 1
+    autoDeployTrigger: "off"
+    buildCommand: npm ci --include=dev && DATA_DIR=/tmp/doodlequest-build TRIPO_API_KEY= CREATOR_ACCESS_CODE= E2E_MOCK_PROVIDER=0 npm run build
+    startCommand: npm run start:production
+    healthCheckPath: /api/health
+    maxShutdownDelaySeconds: 60
+    disk:
+      name: doodlequest-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATA_DIR
+        value: /var/data/doodlequest
+      - key: TRIPO_API_KEY
+        value: ""
+      - key: CREATOR_ACCESS_CODE
+        value: ""
+      - key: GENERATION_QUOTA
+        value: "0"
+      - key: E2E_MOCK_PROVIDER
+        value: "0"
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"

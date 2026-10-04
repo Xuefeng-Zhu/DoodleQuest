@@ -117,6 +117,7 @@ export default function Creator() {
   const [booting, setBooting] = useState(true);
   const [mode, setMode] = useState("example"),
     [unlocked, setUnlocked] = useState(false),
+    [uploadLimitBytes, setUploadLimitBytes] = useState(4 * 1024 * 1024 - 65536),
     [code, setCode] = useState(""),
     [project, setProject] = useState<Project | null>(null),
     [drafts, setDrafts] = useState<Project[]>([]),
@@ -169,6 +170,8 @@ export default function Creator() {
         const all = await api("projects");
         if (!alive) return;
         setMode(m.mode);
+        if (Number.isSafeInteger(m.uploadLimitBytes) && m.uploadLimitBytes > 0)
+          setUploadLimitBytes(m.uploadLimitBytes);
         setUnlocked(session.unlocked);
         setDrafts(all);
         setBooting(false);
@@ -342,13 +345,14 @@ export default function Creator() {
     dirty.current = true;
     setConfig((c) => ({ ...c, [field]: value }));
   };
+  const uploadLimitLabel = `${Math.floor((uploadLimitBytes / (1024 * 1024)) * 100) / 100} MB`;
   const choose = (f?: File) => {
     if (!f) return;
     if (
       !["image/jpeg", "image/png"].includes(f.type) ||
-      f.size > 10 * 1024 * 1024
+      f.size > uploadLimitBytes
     ) {
-      setError("Choose a JPEG or PNG smaller than 10 MB.");
+      setError(`Choose a JPEG or PNG smaller than ${uploadLimitLabel}.`);
       return;
     }
     setError("");
@@ -676,7 +680,7 @@ export default function Creator() {
                   <p>
                     Drop your drawing here, or choose a photo.
                     <br />
-                    JPEG or PNG · up to 10 MB
+                    JPEG or PNG · up to {uploadLimitLabel}
                   </p>
                   <input
                     type="file"

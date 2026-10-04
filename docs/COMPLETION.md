@@ -1,6 +1,50 @@
 # Completion and verification
 
-Verified locally on 2026-10-01. This is a working vertical-slice prototype, not a deployed production service or a verified live Tripo submission.
+This working prototype has a public Vercel + Neon example deployment, local application checks and local live Tripo image-to-model evidence. No event entry has been submitted. Dated sections retain their original test scopes; historical “not run” or “unverified” statements describe those earlier checks and do not override the latest verification below.
+
+## Vercel and Neon hosted verification — 2026-10-03
+
+[DoodleQuest](https://doodlequest-six.vercel.app) is deployed on Vercel Hobby with Neon Free resource `neon-coffee-globe`, connected only to production. Application revision `37cac02` is deployed from `codex/vercel-neon-deployment`; [PR #1](https://github.com/Xuefeng-Zhu/DoodleQuest/pull/1) remains open and `main` is not merged. The deployment uses example mode with `GENERATION_QUOTA=0` and no Tripo API key. No paid plan or provider call was used.
+
+Fifteen hosted HTTP checks passed: public homepage; database readiness; example mode and upload limit; secure isolated creator sessions; draft creation; sample drawing storage; sample approval; gift publication at the production origin; persisted creator configuration and share state; matching creator asset hash; anonymous and foreign-creator access denial; persisted anonymous gift snapshot; matching anonymous gift asset hash; public recipient page; and snapshot immutability after subsequent draft edits. These checks verify real hosted PostgreSQL reads and writes, including the private drawing bytes.
+
+The hosted procedural 3D example was visually verified in Chrome, with its story completed through the accessible controls: bell puzzle, star, delivery and letter. The creator browser flow also passed sample selection, approval, personalization, save/reload and publication; a new recipient tab displayed the rendered 3D scene and saved title/name. Browser revocation displayed “Gift version 1 revoked” for the creator, and reloading the recipient tab displayed “This gift link is no longer available.” This is a hosted browser check, not a physical-device or performance guarantee. The [sanitized verification record](../evidence/vercel-neon/verification.json) and [published example screenshot](../evidence/vercel-neon/published-example.png) contain only fictional test content, with no gift token or credentials.
+
+A fresh production redeployment (`dpl_AAZLqqdLEP7MxwstaLfPUQH3qaAf`, same application revision `37cac02`) preserved saved configuration, share state and exact PNG hashes. Anonymous requests for private drafts/assets returned HTTP 401; a foreign creator received HTTP 404. The published snapshot remained unchanged after draft edits. Revocation then returned HTTP 404 for both the gift JSON and its shared asset. `/api/health` reported production/database readiness and `/api/mode` reported example mode with a 4,128,768-byte upload cap. The build compiled one workflow and 18 steps; no hosted Workflow run or provider call was exercised.
+
+Hosted Workflow execution, live Tripo generation/rigging, large GLB streaming, backup/restore, Safari/Firefox, physical mobile/audio behavior and the hosted recorded Tripo hero remain unverified. The deployed Pip hero is procedural; the existing Tripo walkthrough records a separate local run. Existing private local SQLite data and gifts were not imported or published.
+
+## Vercel and Neon migration — 2026-10-03
+
+The application now uses async PostgreSQL persistence for records and private asset bytes, with Vercel Workflows for durable generation/motion jobs. Local development uses embedded PostgreSQL when no connection URL is configured; Vercel fails closed without a database URL. Existing private SQLite data was preserved and was not imported or published.
+
+Verified locally on this migration:
+
+- `npm test`: **147 tests across 16 files passed**. Coverage includes PostgreSQL rollback, concurrent quota and storage limits, private asset streaming/revocation, atomic drawing replacement, generation uncertainty and Workflow dispatch recovery.
+- TypeScript and the production build passed. The build compiled one workflow and its registered steps. All **11 function traces** were checked after rebuilding: no private `data/`, `evidence/` or `.env` files were included.
+- The native `pg` driver passed an isolated **PostgreSQL 17.11** smoke test using separate backend connections: persisted gifts and exact PNG/GLB bytes, concurrent last-slot quota/storage reservations, nested rollback, pool reopen and container restart. The temporary container and its anonymous volume were removed afterward.
+- The first full Chromium run passed **41 of 42** cases. A development-server configuration reload interrupted the long sharing/revocation case; that case then **passed its isolated rerun in 1.4 minutes** after configuration stabilized. All 42 distinct cases passed across those runs. Mocked generation refresh recovery and the full mocked rigging/shared-gift pipeline passed through the compiled local Workflow runtime.
+
+At the end of this local migration check, provisioning was still pending owner approval and no Vercel project or Neon database had been created. Hosted verification now appears in the newer section above. The migration checks used no paid tier, Tripo credential transfer or provider call.
+
+## Tripothon S1 evidence reconciliation — 2026-10-03
+
+The local verification records contain **two distinct successful live Tripo image-to-model jobs**, both using model version `v3.1-20260211`. The stored GLB hashes match those records. Submission preparation reran `npm test`: **96 tests across 11 files passed in 2.43 seconds** on the source based on `origin/main` at `72dda95`. Earlier Chromium and build results below retain their original dates and were not rerun as part of this documentation reconciliation.
+
+| Live result                                            | Validated GLB                   | Recorded provider credits | Verified local use                                                                                                  |
+| ------------------------------------------------------ | ------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Repository Pip drawing interpreted by Tripo            | 445,404 bytes; 19,202 triangles | 30                        | Upload, browser refresh and worker restart resuming the same task, approval, bell puzzle, star, mailbox and letter. |
+| Generic illustrated Mom & Dad interpreted as one model | 793,396 bytes; 19,796 triangles | 30                        | Upload, approval, personalization, wrapping, link copy and complete adventure in a separate recipient browser.      |
+
+The first run's record does not claim publication. The second run supplied the model for the corrected child-to-parents gift: recipient **Mom & Dad**, sender **Your little artist**, dedication **You make my world brighter**. That correction reused the approved model with **zero additional generation credits**; the records report two total generation reservations. Both live-flow records report zero console errors. The existing `THREE.Clock` deprecation warning remains. No new paid provider call was made while preparing this packet.
+
+The current [walkthrough](../evidence/tripothon-s1/walkthrough.mp4) is **87.333333 seconds, 1440 × 960, H.264 at 24 fps, silent**. It assembles actual local browser screenshots sampled at approximately 5 fps; it is not continuous 24 fps capture. Original live generation and approval footage is reused for the identical Mom & Dad model, followed by newly captured corrected personalization, wrapping and recipient gameplay. Tool-idle gaps were removed, generation waits are visibly accelerated 8×, and the final image is held briefly. The **64.65-second** number in the corrected source record describes its new capture timeline, not the finished video's duration. The source MP4 passed a full decode with zero errors.
+
+The [asset board](../evidence/tripothon-s1/asset-board.html), its 2400 × 3588 [PNG export](../evidence/tripothon-s1/asset-board.png), and [sanitized evidence manifest](../evidence/tripothon-s1/verification.json) form the local submission packet. The shareable video masks local gift links in three bounded regions. All 538 source frames were scanned for URL and credential patterns; all 344 encoded frames spanning the affected interval and nine boundary frames passed the redaction checks. Key masked scenes and all six selected stills were visually inspected. The redacted video also passed a full decode, and its stored hash matches the manifest. This is a local media review, not a guarantee about every possible OCR miss.
+
+Raw verification records, task identifiers, unlisted gift tokens, runtime assets and credentials remain in ignored local data. The repository was verified private during preparation; judge access and event submission remain unresolved.
+
+Live Tripo **rigging and animation** remain unverified; their existing tests use an authored skinned fixture. No claim is made for hosted HTTPS, Docker deployment, backup/restore, physical phone/touch/audio performance, Safari/Firefox or a screen-reader audit. The live records also do not establish revocation/deletion acceptance with a live-generated asset. Historical Chromium coverage below includes those lifecycle behaviors with the stated procedural or mock fixtures.
 
 ## Hero movement and reactions — 2026-10-02
 
@@ -116,9 +160,11 @@ An earlier regression run encountered a Turbopack hot-reload internal error duri
 
 No paid generation ran. Pip remains the procedural example; the GLB continuity test uses an explicit mock. Safari/Firefox, physical devices and live Tripo output remain unverified. The previously measured rendering numbers below are baseline measurements, not a new performance claim for the reveal.
 
-## Original delivery baseline
+## Original delivery baseline — historical record
 
-## Works locally
+The following baseline predates the live runs reconciled above. Its test counts and remaining work describe the original delivery only.
+
+## Works locally at the original delivery
 
 - [x] Interactive scene-led landing page and immediately playable original example.
 - [x] Explicit quest progression, shape-and-color bell sequence, gentle retry, opening gate, star collection/carrying, mailbox delivery, personal ending and replay.
@@ -132,7 +178,7 @@ No paid generation ran. Pip remains the procedural example; the GLB continuity t
 - [x] Durable local file deletion queue and access revocation. No provider-side deletion claim.
 - [x] Local web+worker command, migration/seed commands, production commands, Docker/Compose configuration and complete environment example.
 
-## Executed checks
+## Executed checks at the original delivery
 
 | Check                       | Result and scope                                                                                                          |
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
@@ -163,7 +209,7 @@ Both observed sample scenes are under the 150,000-triangle / 250-draw-call scene
 
 The original PNG is 43,744 bytes. The test-only mock GLB is 1,276 bytes / 8 triangles; its size is not representative of Tripo output. No real generated GLB is bundled. Server model limits include 25 MB file size, 100,000 triangles, 64 MB decoded buffers, 64 primitives, 512 nodes, 64 materials, 16 textures, 4096 pixels per texture side and 16 million total texture pixels. A requested 20,000-face provider option does not replace output validation.
 
-## Live versus example versus mocked
+## Live versus example versus mocked at the original delivery
 
 | Item                                                                                                     | Evidence level                                                                                                         |
 | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -175,7 +221,7 @@ The original PNG is 43,744 bytes. The test-only mock GLB is 1,276 bytes / 8 tria
 
 Arbitrary uploads in example mode do not silently receive Pip. Failed live generation is never replaced by a sample. Recipient viewing and gameplay do not call paid generation APIs.
 
-## Remaining limitations / not run
+## Remaining limitations at the original delivery
 
 - [ ] Live Tripo smoke test and actual generated-model provenance/performance evidence. The proposed Tripo event track remains conditional on this evidence.
 - [ ] Docker image build, persistent-volume deployment, HTTPS/reverse-proxy operation, backup/restore and production failure testing. Configuration is for one persistent node, **not ephemeral serverless**.

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { eq } from "drizzle-orm";
 import { env } from "../src/server/env";
-import { db } from "../src/server/db";
+import { db, ready, closeDatabase } from "../src/server/db";
 import { sessions, projects } from "../src/server/schema";
 import { newProject, requestGeneration } from "../src/server/repository";
 import { saveAsset } from "../src/server/storage";
@@ -15,26 +15,26 @@ if (process.argv[2] !== "--confirm-paid")
   );
 const owner = digest(token()),
   now = Date.now();
-db.insert(sessions)
-  .values({
-    id: owner,
-    createdAt: now,
-    expiresAt: now + 90 * 24 * 3600_000,
-    unlocked: 1,
-  })
-  .run();
-const p = newProject(owner);
+await ready();
+await db.insert(sessions).values({
+  id: owner,
+  createdAt: now,
+  expiresAt: now + 90 * 24 * 3600_000,
+  unlocked: 1,
+});
+const p = await newProject(owner);
 const inputAsset = await saveAsset(
   p.id,
   "drawing",
   await readFile("public/sample-drawing.png"),
   { sample: true, source: "repository original" },
 );
-db.update(projects)
+await db
+  .update(projects)
   .set({ inputAsset, revision: 1, source: "tripo" })
-  .where(eq(projects.id, p.id))
-  .run();
-const job = requestGeneration(owned(p.id, owner), randomUUID());
+  .where(eq(projects.id, p.id));
+const job = await requestGeneration(await owned(p.id, owner), randomUUID());
 console.log(
-  `Queued paid sample attempt ${job.id}. Run npm run worker. Result will be cached in protected storage, not public/. Inspect locally in SQLite; review licensing and approval before distribution. For visual approval and sharing, use the creator UI instead.`,
+  `Queued paid sample attempt ${job.id}. Run npm run worker. Result will be cached in protected PostgreSQL storage, not public/. Review licensing and approval before distribution. For visual approval and sharing, use the creator UI instead.`,
 );
+await closeDatabase();

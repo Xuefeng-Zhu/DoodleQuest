@@ -1,4 +1,4 @@
-# DoodleQuest — Your drawing deserves a world.
+# DoodleQuest — Tripothon S1 preparation
 
 A drawing is already a little piece of its maker. DoodleQuest gives it somewhere to go: a floating garden where the character opens a bell gate, finds a star, and delivers a personal note. It is a hero that participates, not merely a model to inspect.
 
@@ -8,17 +8,18 @@ An adult creator turns art they have permission to use into an unlisted playable
 
 Proposed direction: **Game**. One environment, one quest, three stations. Personalization changes character/presentation/ending, not arbitrary rules.
 
-Proposed tool track: **Tripo — conditional on live evidence**. The real v3 adapter and durable worker are implemented. Its stored model becomes the same character that navigates and carries the star. However, **live Tripo generation was not run: credentials were unavailable**. Procedural sample and mocked tests are not proof of tool-track usage. Complete and record the [live smoke test](operations.md#live-smoke-test) before claiming this track.
+Proposed tool track: **Tripo**. Two successful live generations are now documented in the saved local evidence; the corrected Mom & Dad demo reuses the second generated character. Optional live Tripo rigging remains unverified. See the [current verification record](COMPLETION.md).
 
 ## Official event review
 
-Reviewed [Tripothon S1](https://developers.tripo3d.ai/en/events/tripothon-s1) on 2026-09-30. It requires a playable demo, actual walkthrough screen recording, and visual asset board. The page lists submissions through October 5, 2026 (AoE). Recheck rules immediately before submission. This task does not submit an entry or claim acceptance.
+The updated [submission package](../tripothon-submission.md) contains the October 3 event review, paste-ready copy, official deadline, hosted and local judge instructions, reviewed media links and remaining access requirements. Tripothon uses its own portal, not Devpost. This preparation does not create or submit an event entry.
 
 ## Materials
 
-- Complete local `/example`, connected creator flow and snapshot sharing.
-- `evidence/walkthrough.mp4`: actual recorded browser interaction, procedural sample clearly labeled.
-- `evidence/asset-board.html`: source drawing, character views, island, gameplay and ending.
-- `COMPLETION.md`: explicit verified, mocked and unfinished items.
+- [Hosted procedural Pip example](https://doodlequest-six.vercel.app/example) and [sample gift creator](https://doodlequest-six.vercel.app/create) on Vercel Hobby + Neon Free. Hosted checks verify draft/approval/publication, drawing-byte persistence across redeployment, ownership, immutable snapshots and revocation. The rendered 3D example was visually verified and its story completed through accessible controls to the letter.
+- [Tripothon walkthrough](../evidence/tripothon-s1/walkthrough.mp4): actual recorded interaction with the live-generated hero; local gift links masked.
+- [Tripothon asset board](../evidence/tripothon-s1/asset-board.html): demonstration artwork, generated hero and corrected recipient story.
+- [Verification](../evidence/tripothon-s1/verification.json): sanitized local evidence summary.
+- [COMPLETION.md](COMPLETION.md): dated verified, mocked and unfinished items.
 
-Before entering: supply live Tripo evidence and model provenance, review output permissions, deploy behind HTTPS on persistent storage, and rerecord with the real model. Never include credentials or private signed provider URLs.
+Before entering: resolve judge access to the recorded Tripo hero, provide the event's media destinations, review source/output permissions, inspect the remaining portal form and confirm the final entry. The [repository](https://github.com/Xuefeng-Zhu/DoodleQuest) is public, and anonymous source access has been verified. The hosted demo uses procedural Pip with paid generation disabled; it does not establish hosted Tripo or Workflow success. Event media submission and final entry remain pending. Preserve the raw local evidence separately; never upload credentials, runtime databases, owner cookies or signed provider URLs.

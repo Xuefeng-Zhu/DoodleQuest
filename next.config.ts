@@ -1,8 +1,19 @@
 import type { NextConfig } from "next";
+import { withWorkflow } from "workflow/next";
 const config: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR || ".next",
   devIndicators: false,
-  serverExternalPackages: ["better-sqlite3", "sharp", "gltf-validator"],
+  serverExternalPackages: [
+    "pg",
+    "@electric-sql/pglite",
+    "sharp",
+    "gltf-validator",
+  ],
+  // Private local evidence, legacy uploads and credentials never belong in a
+  // serverless bundle, including a deployment built from a local checkout.
+  outputFileTracingExcludes: {
+    "/*": ["./data/**/*", "./.env*", "./evidence/**/*", "./tests/**/*"],
+  },
   async headers() {
     return [
       {
@@ -20,4 +31,4 @@ const config: NextConfig = {
     ];
   },
 };
-export default config;
+export default withWorkflow(config);

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { and, desc, eq, inArray } from "drizzle-orm";
-import { db, sqlite } from "./db";
+import { and, asc, desc, eq, inArray, lt, lte, sql } from "drizzle-orm";
+import { db, query, ready, transaction } from "./db";
 import {
   jobs,
   projects,
@@ -12,7 +12,7 @@ import {
   type Project,
 } from "./schema";
 import { env } from "./env";
-import { defaults, GiftConfigSchema, type GiftConfig } from "../domain/config";
+import { defaults, GiftConfigSchema } from "../domain/config";
 import { HttpError, token } from "./security";
 export const activeStatuses = [
   "pending",
@@ -25,210 +25,234 @@ export const activeStatuses = [
   "asset_retry",
 ];
 export interface GenerationRepository {
-  claim(): Job | undefined;
-  patch(job: Job, changes: Partial<Job>): boolean;
+  claim(jobId?: string): Promise<Job | undefined>;
+  patch(job: Job, changes: Partial<Job>): Promise<boolean>;
 }
 export const repository: GenerationRepository = {
-  claim() {
-    return sqlite
-      .transaction(() => {
-        const now = Date.now();
-        const found = sqlite
-          .prepare(
-            `SELECT * FROM jobs WHERE status IN (${activeStatuses.map(() => "?").join(",")}) AND nextPoll<=? AND leaseUntil<? ORDER BY createdAt LIMIT 1`,
-          )
-          .get(...activeStatuses, now, now) as Job | undefined;
-        if (!found) return;
-        const leaseToken = token();
-        db.update(jobs)
-          .set({ leaseToken, leaseUntil: now + 120_000 })
-          .where(eq(jobs.id, found.id))
-          .run();
-        return { ...found, leaseToken, leaseUntil: now + 120_000 };
-      })
-      .immediate();
+  claim(jobId) {
+    return transaction(async () => {
+      const now = Date.now();
+      const [found] = await db
+        .select()
+        .from(jobs)
+        .where(
+          and(
+            inArray(jobs.status, activeStatuses),
+            lte(jobs.nextPoll, now),
+            lt(jobs.leaseUntil, now),
+            jobId === undefined ? undefined : eq(jobs.id, jobId),
+          ),
+        )
+        .orderBy(asc(jobs.createdAt))
+        .limit(1);
+      if (!found) return;
+      const leaseToken = token(),
+        leaseUntil = now + 120_000;
+      await db
+        .update(jobs)
+        .set({ leaseToken, leaseUntil })
+        .where(eq(jobs.id, found.id));
+      return { ...found, leaseToken, leaseUntil };
+    });
   },
   patch(job, changes) {
-    return (
-      db
+    return transaction(async () => {
+      const changed = await db
         .update(jobs)
         .set({ ...changes, updatedAt: Date.now() })
         .where(
           and(eq(jobs.id, job.id), eq(jobs.leaseToken, job.leaseToken || "")),
         )
-        .run().changes === 1
-    );
+        .returning({ id: jobs.id });
+      return changed.length === 1;
+    });
   },
 };
-export function newProject(owner: string) {
-  const now = Date.now(),
-    id = randomUUID();
-  db.insert(projects)
-    .values({
-      id,
-      owner,
-      config: JSON.stringify(defaults),
-      createdAt: now,
-      updatedAt: now,
-    })
-    .run();
-  return db.select().from(projects).where(eq(projects.id, id)).get()!;
+export function newProject(owner: string): Promise<Project> {
+  return transaction(async () => {
+    const now = Date.now();
+    const [project] = await db
+      .insert(projects)
+      .values({
+        id: randomUUID(),
+        owner,
+        config: JSON.stringify(defaults),
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+    return project;
+  });
+}
+
+// Both generation kinds share the transaction helper's advisory lock, so the
+// count and reservation are atomic even for different projects and owners.
+async function checkQuota(owner: string) {
+  const [usage] = await query<{ ownerCount: number; total: number }>(sql`
+    SELECT COUNT(*) FILTER (WHERE owner = ${owner})::integer AS "ownerCount",
+           COUNT(*)::integer AS total FROM generation_usage
+  `);
+  if (usage.ownerCount >= env.quota || usage.total >= env.quota)
+    throw new HttpError(
+      429,
+      "The configured generation quota has been reached.",
+    );
+}
+async function reserveGeneration(id: string, owner: string, createdAt: number) {
+  await query(
+    sql`INSERT INTO generation_usage (id, owner, "createdAt") VALUES (${id}, ${owner}, ${createdAt})`,
+  );
 }
 export function requestGeneration(
   p: Project,
   key: string,
   explicitRetry = false,
-) {
-  return sqlite
-    .transaction(() => {
-      p = currentProject(p);
-      assertNoActiveMotion(p.id);
-      const existing = db
-        .select()
-        .from(jobs)
-        .where(eq(jobs.idempotencyKey, `${p.id}:${key}`))
-        .get();
-      if (existing) return existing;
-      const current = db
-        .select()
-        .from(jobs)
-        .where(
-          and(eq(jobs.projectId, p.id), eq(jobs.inputRevision, p.revision)),
-        )
-        .orderBy(desc(jobs.createdAt))
-        .get();
-      if (current && activeStatuses.includes(current.status)) return current;
-      if (current && !explicitRetry)
-        throw new HttpError(
-          409,
-          "This drawing already has an attempt. Review it or explicitly request another paid attempt.",
-        );
-      if (!p.inputAsset) throw new HttpError(400, "Choose a drawing first.");
-      const count = (
-        sqlite
-          .prepare("SELECT COUNT(*) AS n FROM generation_usage WHERE owner=?")
-          .get(p.owner) as { n: number }
-      ).n;
-      const global = (
-        sqlite.prepare("SELECT COUNT(*) AS n FROM generation_usage").get() as {
-          n: number;
-        }
-      ).n;
-      if (count >= env.quota || global >= env.quota)
-        throw new HttpError(
-          429,
-          "The configured generation quota has been reached.",
-        );
-      const now = Date.now();
-      const job: Job = {
-        id: randomUUID(),
-        projectId: p.id,
-        owner: p.owner,
-        inputAsset: p.inputAsset,
-        inputRevision: p.revision,
-        idempotencyKey: `${p.id}:${key}`,
-        providerId: null,
-        providerStatus: null,
-        uploadToken: null,
-        status: "pending",
-        progress: null,
-        attempts: 0,
-        nextPoll: now,
-        leaseUntil: 0,
-        leaseToken: null,
-        lastError: null,
-        finalAsset: null,
-        model: env.model,
-        createdAt: now,
-        updatedAt: now,
-      };
-      db.insert(jobs).values(job).run();
-      sqlite
-        .prepare("INSERT INTO generation_usage VALUES(?,?,?)")
-        .run(job.id, p.owner, now);
-      db.update(projects)
-        .set({
-          approved: 0,
-          modelAsset: null,
-          source: env.mock ? "mock" : "tripo",
-        })
-        .where(eq(projects.id, p.id))
-        .run();
-      return job;
-    })
-    .immediate();
+): Promise<Job> {
+  return transaction(async () => {
+    p = await currentProject(p);
+    await assertNoActiveMotion(p.id);
+    const [existing] = await db
+      .select()
+      .from(jobs)
+      .where(eq(jobs.idempotencyKey, `${p.id}:${key}`))
+      .limit(1);
+    if (existing) return existing;
+    const [current] = await db
+      .select()
+      .from(jobs)
+      .where(and(eq(jobs.projectId, p.id), eq(jobs.inputRevision, p.revision)))
+      .orderBy(desc(jobs.createdAt))
+      .limit(1);
+    if (current && activeStatuses.includes(current.status)) return current;
+    if (current && !explicitRetry)
+      throw new HttpError(
+        409,
+        "This drawing already has an attempt. Review it or explicitly request another paid attempt.",
+      );
+    if (!p.inputAsset) throw new HttpError(400, "Choose a drawing first.");
+    await checkQuota(p.owner);
+    const now = Date.now();
+    const job: Job = {
+      id: randomUUID(),
+      projectId: p.id,
+      owner: p.owner,
+      inputAsset: p.inputAsset,
+      inputRevision: p.revision,
+      idempotencyKey: `${p.id}:${key}`,
+      providerId: null,
+      providerStatus: null,
+      uploadToken: null,
+      status: "pending",
+      progress: null,
+      attempts: 0,
+      nextPoll: now,
+      leaseUntil: 0,
+      leaseToken: null,
+      lastError: null,
+      finalAsset: null,
+      model: env.model,
+      createdAt: now,
+      updatedAt: now,
+    };
+    await db.insert(jobs).values(job);
+    await reserveGeneration(job.id, p.owner, now);
+    await db
+      .update(projects)
+      .set({
+        approved: 0,
+        modelAsset: null,
+        source: env.mock ? "mock" : "tripo",
+      })
+      .where(eq(projects.id, p.id));
+    return job;
+  });
 }
-export function originalAsset(p: Project) {
+export async function originalAsset(p: Project): Promise<string | null> {
   if (!p.inputAsset) return null;
-  const a = db.select().from(assets).where(eq(assets.id, p.inputAsset)).get();
+  await ready();
+  const [a] = await db
+    .select()
+    .from(assets)
+    .where(eq(assets.id, p.inputAsset))
+    .limit(1);
   return a ? JSON.parse(a.metadata).originalId || p.inputAsset : null;
 }
 export function publish(p: Project) {
-  if (!p.approved)
-    throw new HttpError(409, "Approve your character before publishing.");
-  const config = GiftConfigSchema.parse(JSON.parse(p.config));
-  return sqlite
-    .transaction(() => {
-      const last = db
-        .select()
-        .from(gifts)
-        .where(eq(gifts.projectId, p.id))
-        .orderBy(desc(gifts.version))
-        .get();
-      const snapshot = {
-        config,
-        modelAsset: p.modelAsset,
-        drawingAsset: config.showDrawing ? originalAsset(p) : null,
-        source: p.source,
-        version: (last?.version || 0) + 1,
-      };
-      const g = {
-        id: randomUUID(),
-        projectId: p.id,
-        token: token(),
-        snapshot: JSON.stringify(snapshot),
-        version: snapshot.version,
-        revoked: 0,
-        createdAt: Date.now(),
-      };
-      db.insert(gifts).values(g).run();
-      return g;
-    })
-    .immediate();
+  return transaction(async () => {
+    // Approval, content and version are read under the same mutation lock.
+    p = await currentProject(p);
+    if (!p.approved)
+      throw new HttpError(409, "Approve your character before publishing.");
+    const config = GiftConfigSchema.parse(JSON.parse(p.config));
+    const [last] = await db
+      .select()
+      .from(gifts)
+      .where(eq(gifts.projectId, p.id))
+      .orderBy(desc(gifts.version))
+      .limit(1);
+    const snapshot = {
+      config,
+      modelAsset: p.modelAsset,
+      drawingAsset: config.showDrawing ? await originalAsset(p) : null,
+      source: p.source,
+      version: (last?.version || 0) + 1,
+    };
+    const gift = {
+      id: randomUUID(),
+      projectId: p.id,
+      token: token(),
+      snapshot: JSON.stringify(snapshot),
+      version: snapshot.version,
+      revoked: 0,
+      createdAt: Date.now(),
+    };
+    await db.insert(gifts).values(gift);
+    return gift;
+  });
 }
-export function projectView(p: Project) {
-  const motion = db
+export async function projectView(p: Project) {
+  await ready();
+  const [motion] = await db
     .select()
     .from(motionJobs)
     .where(eq(motionJobs.projectId, p.id))
     .orderBy(desc(motionJobs.createdAt))
-    .get();
-  const job = db
+    .limit(1);
+  const [job] = await db
     .select()
     .from(jobs)
     .where(eq(jobs.projectId, p.id))
     .orderBy(desc(jobs.createdAt))
-    .get();
-  const publicJob = job
-    ? {
-        id: job.id,
-        status: job.status,
-        providerStatus: job.providerStatus,
-        providerId: job.providerId,
-        progress: job.progress,
-        lastError: job.lastError,
-        createdAt: job.createdAt,
-        attempts: job.attempts,
-        inputRevision: job.inputRevision,
-        finalAsset: job.finalAsset,
-        model: job.model,
-      }
-    : null;
+    .limit(1);
+  const drawing = await originalAsset(p);
+  const shares = await db
+    .select({
+      id: gifts.id,
+      token: gifts.token,
+      version: gifts.version,
+      revoked: gifts.revoked,
+    })
+    .from(gifts)
+    .where(eq(gifts.projectId, p.id));
   return {
     ...p,
     owner: undefined,
     config: GiftConfigSchema.parse(JSON.parse(p.config)),
-    job: publicJob,
+    job: job
+      ? {
+          id: job.id,
+          status: job.status,
+          providerStatus: job.providerStatus,
+          providerId: job.providerId,
+          progress: job.progress,
+          lastError: job.lastError,
+          createdAt: job.createdAt,
+          attempts: job.attempts,
+          inputRevision: job.inputRevision,
+          finalAsset: job.finalAsset,
+          model: job.model,
+        }
+      : null,
     motionJob: motion
       ? {
           id: motion.id,
@@ -244,33 +268,24 @@ export function projectView(p: Project) {
           attempts: motion.attempts,
         }
       : null,
-    drawingUrl: originalAsset(p) ? `/api/assets/${originalAsset(p)}` : null,
+    drawingUrl: drawing ? `/api/assets/${drawing}` : null,
     modelUrl: p.modelAsset ? `/api/assets/${p.modelAsset}` : null,
-    shares: db
-      .select({
-        id: gifts.id,
-        token: gifts.token,
-        version: gifts.version,
-        revoked: gifts.revoked,
-      })
-      .from(gifts)
-      .where(eq(gifts.projectId, p.id))
-      .all(),
+    shares,
   };
 }
 
-function currentProject(p: Project) {
-  const current = db
+async function currentProject(p: Project): Promise<Project> {
+  const [current] = await db
     .select()
     .from(projects)
     .where(and(eq(projects.id, p.id), eq(projects.owner, p.owner)))
-    .get();
+    .limit(1);
   if (!current) throw new HttpError(404, "Draft not found.");
   return current;
 }
-
-export function assertNoActiveMotion(projectId: string) {
-  const running = db
+export async function assertNoActiveMotion(projectId: string) {
+  await ready();
+  const [running] = await db
     .select({ id: motionJobs.id })
     .from(motionJobs)
     .where(
@@ -279,174 +294,162 @@ export function assertNoActiveMotion(projectId: string) {
         inArray(motionJobs.status, activeStatuses),
       ),
     )
-    .get();
+    .limit(1);
   if (running)
     throw new HttpError(
       409,
       "Let the hero's movement finish before replacing or deleting it.",
     );
 }
-
-export function requestMotion(p: Project, key: string, explicitRetry = false) {
-  return sqlite
-    .transaction(() => {
-      p = currentProject(p);
-      const existing = db
-        .select()
-        .from(motionJobs)
-        .where(eq(motionJobs.idempotencyKey, `${p.id}:${key}`))
-        .get();
-      if (existing) return existing;
-      const active = db
-        .select()
-        .from(motionJobs)
-        .where(
-          and(
-            eq(motionJobs.projectId, p.id),
-            inArray(motionJobs.status, activeStatuses),
-          ),
-        )
-        .get();
-      if (active) return active;
-      const generating = db
-        .select({ id: jobs.id })
-        .from(jobs)
-        .where(
-          and(eq(jobs.projectId, p.id), inArray(jobs.status, activeStatuses)),
-        )
-        .get();
-      if (generating)
-        throw new HttpError(
-          409,
-          "Let generation finish before adding movement.",
-        );
-      if (!p.modelAsset || !["tripo", "mock"].includes(p.source))
-        throw new HttpError(
-          409,
-          "Generate a custom hero before adding movement.",
-        );
-      const model = db
-        .select()
-        .from(assets)
-        .where(
-          and(
-            eq(assets.id, p.modelAsset),
-            eq(assets.projectId, p.id),
-            eq(assets.kind, "model"),
-          ),
-        )
-        .get();
-      const metadata = model ? JSON.parse(model.metadata) : {};
-      const generationTask = metadata.generationTask || metadata.providerTask;
-      if (
-        typeof generationTask !== "string" ||
-        !generationTask ||
-        metadata.source !== p.source
+export function requestMotion(
+  p: Project,
+  key: string,
+  explicitRetry = false,
+): Promise<MotionJob> {
+  return transaction(async () => {
+    p = await currentProject(p);
+    const [existing] = await db
+      .select()
+      .from(motionJobs)
+      .where(eq(motionJobs.idempotencyKey, `${p.id}:${key}`))
+      .limit(1);
+    if (existing) return existing;
+    const [active] = await db
+      .select()
+      .from(motionJobs)
+      .where(
+        and(
+          eq(motionJobs.projectId, p.id),
+          inArray(motionJobs.status, activeStatuses),
+        ),
       )
-        throw new HttpError(
-          409,
-          "This hero's original generation is unavailable for animation.",
-        );
-      const previous = db
+      .limit(1);
+    if (active) return active;
+    const [generating] = await db
+      .select({ id: jobs.id })
+      .from(jobs)
+      .where(
+        and(eq(jobs.projectId, p.id), inArray(jobs.status, activeStatuses)),
+      )
+      .limit(1);
+    if (generating)
+      throw new HttpError(409, "Let generation finish before adding movement.");
+    if (!p.modelAsset || !["tripo", "mock"].includes(p.source))
+      throw new HttpError(
+        409,
+        "Generate a custom hero before adding movement.",
+      );
+    const [model] = await db
+      .select()
+      .from(assets)
+      .where(
+        and(
+          eq(assets.id, p.modelAsset),
+          eq(assets.projectId, p.id),
+          eq(assets.kind, "model"),
+        ),
+      )
+      .limit(1);
+    const metadata = model ? JSON.parse(model.metadata) : {};
+    const generationTask = metadata.generationTask || metadata.providerTask;
+    if (
+      typeof generationTask !== "string" ||
+      !generationTask ||
+      metadata.source !== p.source
+    )
+      throw new HttpError(
+        409,
+        "This hero's original generation is unavailable for animation.",
+      );
+    const previous = (
+      await db
         .select()
         .from(motionJobs)
         .where(eq(motionJobs.projectId, p.id))
         .orderBy(desc(motionJobs.createdAt))
-        .all()
-        .find(
-          (j) => j.inputAsset === p.modelAsset || j.finalAsset === p.modelAsset,
-        );
-      if (previous && !explicitRetry)
-        throw new HttpError(
-          409,
-          "This hero already has a movement attempt. Review it or explicitly request another paid attempt.",
-        );
-      const count = (
-        sqlite
-          .prepare("SELECT COUNT(*) AS n FROM generation_usage WHERE owner=?")
-          .get(p.owner) as { n: number }
-      ).n;
-      const global = (
-        sqlite.prepare("SELECT COUNT(*) AS n FROM generation_usage").get() as {
-          n: number;
-        }
-      ).n;
-      if (count >= env.quota || global >= env.quota)
-        throw new HttpError(
-          429,
-          "The configured generation quota has been reached.",
-        );
-      const now = Date.now();
-      const resume =
-        previous &&
-        previous.inputAsset === p.modelAsset &&
-        ["failed", "uncertain"].includes(previous.status)
-          ? previous
-          : null;
-      const job: MotionJob = {
-        id: randomUUID(),
-        projectId: p.id,
-        owner: p.owner,
-        inputAsset: p.modelAsset,
-        inputRevision: p.revision,
-        inputSource: p.source,
-        generationTask,
-        idempotencyKey: `${p.id}:${key}`,
-        stage: resume?.stage || "rig_check",
-        checkTask:
-          resume && resume.stage !== "rig_check" ? resume.checkTask : null,
-        rigTask: resume?.stage === "retarget" ? resume.rigTask : null,
-        retargetTask: null,
-        rigType: resume?.rigType || null,
-        providerStatus: null,
-        status: "pending",
-        progress: null,
-        attempts: 0,
-        nextPoll: now,
-        leaseUntil: 0,
-        leaseToken: null,
-        lastError: null,
-        finalAsset: null,
-        createdAt: now,
-        updatedAt: now,
-      };
-      db.insert(motionJobs).values(job).run();
-      sqlite
-        .prepare("INSERT INTO generation_usage VALUES(?,?,?)")
-        .run(job.id, p.owner, now);
-      return job;
-    })
-    .immediate();
+    ).find(
+      (job) =>
+        job.inputAsset === p.modelAsset || job.finalAsset === p.modelAsset,
+    );
+    if (previous && !explicitRetry)
+      throw new HttpError(
+        409,
+        "This hero already has a movement attempt. Review it or explicitly request another paid attempt.",
+      );
+    await checkQuota(p.owner);
+    const now = Date.now();
+    const resume =
+      previous &&
+      previous.inputAsset === p.modelAsset &&
+      ["failed", "uncertain"].includes(previous.status)
+        ? previous
+        : null;
+    const job: MotionJob = {
+      id: randomUUID(),
+      projectId: p.id,
+      owner: p.owner,
+      inputAsset: p.modelAsset,
+      inputRevision: p.revision,
+      inputSource: p.source,
+      generationTask,
+      idempotencyKey: `${p.id}:${key}`,
+      stage: resume?.stage || "rig_check",
+      checkTask:
+        resume && resume.stage !== "rig_check" ? resume.checkTask : null,
+      rigTask: resume?.stage === "retarget" ? resume.rigTask : null,
+      retargetTask: null,
+      rigType: resume?.rigType || null,
+      providerStatus: null,
+      status: "pending",
+      progress: null,
+      attempts: 0,
+      nextPoll: now,
+      leaseUntil: 0,
+      leaseToken: null,
+      lastError: null,
+      finalAsset: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    await db.insert(motionJobs).values(job);
+    await reserveGeneration(job.id, p.owner, now);
+    return job;
+  });
 }
-
 export interface MotionRepository {
-  claim(): MotionJob | undefined;
-  patch(job: MotionJob, changes: Partial<MotionJob>): boolean;
+  claim(jobId?: string): Promise<MotionJob | undefined>;
+  patch(job: MotionJob, changes: Partial<MotionJob>): Promise<boolean>;
 }
 export const motionRepository: MotionRepository = {
-  claim() {
-    return sqlite
-      .transaction(() => {
-        const now = Date.now();
-        const found = sqlite
-          .prepare(
-            `SELECT * FROM motion_jobs WHERE status IN (${activeStatuses.map(() => "?").join(",")}) AND nextPoll<=? AND leaseUntil<? ORDER BY createdAt LIMIT 1`,
-          )
-          .get(...activeStatuses, now, now) as MotionJob | undefined;
-        if (!found) return;
-        const leaseToken = token(),
-          leaseUntil = now + 120_000;
-        db.update(motionJobs)
-          .set({ leaseToken, leaseUntil })
-          .where(eq(motionJobs.id, found.id))
-          .run();
-        return { ...found, leaseToken, leaseUntil };
-      })
-      .immediate();
+  claim(jobId) {
+    return transaction(async () => {
+      const now = Date.now();
+      const [found] = await db
+        .select()
+        .from(motionJobs)
+        .where(
+          and(
+            inArray(motionJobs.status, activeStatuses),
+            lte(motionJobs.nextPoll, now),
+            lt(motionJobs.leaseUntil, now),
+            jobId === undefined ? undefined : eq(motionJobs.id, jobId),
+          ),
+        )
+        .orderBy(asc(motionJobs.createdAt))
+        .limit(1);
+      if (!found) return;
+      const leaseToken = token(),
+        leaseUntil = now + 120_000;
+      await db
+        .update(motionJobs)
+        .set({ leaseToken, leaseUntil })
+        .where(eq(motionJobs.id, found.id));
+      return { ...found, leaseToken, leaseUntil };
+    });
   },
   patch(job, changes) {
-    return (
-      db
+    return transaction(async () => {
+      const changed = await db
         .update(motionJobs)
         .set({ ...changes, updatedAt: Date.now() })
         .where(
@@ -455,7 +458,8 @@ export const motionRepository: MotionRepository = {
             eq(motionJobs.leaseToken, job.leaseToken || ""),
           ),
         )
-        .run().changes === 1
-    );
+        .returning({ id: motionJobs.id });
+      return changed.length === 1;
+    });
   },
 };

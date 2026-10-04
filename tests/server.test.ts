@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { eq } from "drizzle-orm";
-import { db, sqlite } from "../src/server/db";
+import { eq, sql } from "drizzle-orm";
+import { db, ready, query } from "../src/server/db";
 import { sessions, projects, jobs, gifts } from "../src/server/schema";
 import {
   newProject,
@@ -24,34 +24,33 @@ import {
 } from "../src/server/storage";
 import { deleteProject } from "../src/server/cleanup";
 import { defaults } from "../src/domain/config";
+import { env } from "../src/server/env";
 import { NextRequest } from "next/server";
 async function draft() {
   const owner = randomUUID();
-  db.insert(sessions)
-    .values({
-      id: owner,
-      createdAt: Date.now(),
-      expiresAt: Date.now() + 100000,
-    })
-    .run();
-  const p = newProject(owner);
+  await db.insert(sessions).values({
+    id: owner,
+    createdAt: Date.now(),
+    expiresAt: Date.now() + 100000,
+  });
+  const p = await newProject(owner);
   const inputAsset = await saveAsset(
     p.id,
     "drawing",
     await readFile("public/sample-drawing.png"),
     { sample: true },
   );
-  db.update(projects)
+  await db
+    .update(projects)
     .set({ inputAsset, revision: 1 })
-    .where(eq(projects.id, p.id))
-    .run();
-  return owned(p.id, owner);
+    .where(eq(projects.id, p.id));
+  return await owned(p.id, owner);
 }
-function due(id: string) {
-  db.update(jobs)
+async function due(id: string) {
+  await db
+    .update(jobs)
     .set({ leaseUntil: 0, nextPoll: 0 })
-    .where(eq(jobs.id, id))
-    .run();
+    .where(eq(jobs.id, id));
 }
 const provider = () => ({
   upload: vi.fn().mockResolvedValue("file_test"),
@@ -63,8 +62,9 @@ const provider = () => ({
     modelUrl: "https://cdn.tripo3d.ai/model.glb",
   }),
 });
-beforeEach(() => {
-  sqlite.prepare("UPDATE jobs SET status='failed'").run();
+beforeEach(async () => {
+  await ready();
+  await db.update(jobs).set({ status: "failed" });
 });
 describe("generation reliability", () => {
   it("maps only documented status values, retaining unknown states for polling", () => {
@@ -84,87 +84,156 @@ describe("generation reliability", () => {
   it("idempotent requests and concurrent distinct keys reuse the active job", async () => {
     const p = await draft(),
       key = randomUUID();
-    const a = requestGeneration(p, key);
-    expect(requestGeneration(p, key).id).toBe(a.id);
-    expect(requestGeneration(p, randomUUID()).id).toBe(a.id);
+    const [a, repeated, distinct] = await Promise.all([
+      requestGeneration(p, key),
+      requestGeneration(p, key),
+      requestGeneration(p, randomUUID()),
+    ]);
+    expect(repeated.id).toBe(a.id);
+    expect(distinct.id).toBe(a.id);
+    const [usage] = await query<{ count: number }>(
+      sql`SELECT COUNT(*)::integer AS count FROM generation_usage WHERE owner=${p.owner}`,
+    );
+    expect(usage.count).toBe(1);
+  });
+  it("reserves the final shared quota slot atomically across different projects", async () => {
+    const [a, b] = await Promise.all([draft(), draft()]);
+    const [usage] = await query<{ count: number }>(
+      sql`SELECT COUNT(*)::integer AS count FROM generation_usage`,
+    );
+    const oldQuota = env.quota;
+    env.quota = usage.count + 1;
+    try {
+      const results = await Promise.allSettled([
+        requestGeneration(a, randomUUID()),
+        requestGeneration(b, randomUUID()),
+      ]);
+      expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+      const rejected = results.find((r) => r.status === "rejected");
+      expect(rejected?.reason.message).toContain("quota");
+    } finally {
+      env.quota = oldQuota;
+    }
+  });
+  it("a workflow job ID never claims an unrelated pending generation", async () => {
+    const first = await requestGeneration(await draft(), randomUUID());
+    const second = await requestGeneration(await draft(), randomUUID());
+    const api = provider();
+    await processOne(api, repository, undefined, second.id);
+    expect(api.create).toHaveBeenCalledTimes(1);
+    expect(
+      (await db.select().from(jobs).where(eq(jobs.id, first.id)))[0].status,
+    ).toBe("pending");
+    expect(
+      (await db.select().from(jobs).where(eq(jobs.id, second.id)))[0].status,
+    ).toBe("queued");
+  });
+  it("does not repeat a paid submission when saving its returned task ID fails", async () => {
+    const j = await requestGeneration(await draft(), randomUUID());
+    const api = provider();
+    let lostWrite = false;
+    await processOne(api, {
+      claim: repository.claim,
+      async patch(job, changes) {
+        if (changes.providerId && !lostWrite) {
+          lostWrite = true;
+          throw new Error("Task ID write interrupted");
+        }
+        return repository.patch(job, changes);
+      },
+    });
+    expect(
+      (await db.select().from(jobs).where(eq(jobs.id, j.id)))[0].status,
+    ).toBe("uncertain");
+    await due(j.id);
+    await processOne(api, repository, undefined, j.id);
+    expect(api.create).toHaveBeenCalledTimes(1);
   });
   it("resumes a known provider task and retries downloads without generating again", async () => {
     const p = await draft(),
-      j = requestGeneration(p, randomUUID()),
+      j = await requestGeneration(p, randomUUID()),
       api = provider();
     await processOne(api);
     expect(api.create).toHaveBeenCalledTimes(1);
     expect(
-      db.select().from(jobs).where(eq(jobs.id, j.id)).get()?.providerId,
+      (await db.select().from(jobs).where(eq(jobs.id, j.id)).limit(1))[0]
+        ?.providerId,
     ).toBe("task_test");
-    due(j.id);
+    await due(j.id);
     const dl = vi
       .fn()
       .mockRejectedValueOnce(new Error("network"))
       .mockResolvedValue(await readFile("tests/fixtures/mock.glb"));
     await processOne(api, repository, dl);
-    expect(db.select().from(jobs).where(eq(jobs.id, j.id)).get()?.status).toBe(
-      "asset_retry",
-    );
-    due(j.id);
+    expect(
+      (await db.select().from(jobs).where(eq(jobs.id, j.id)).limit(1))[0]
+        ?.status,
+    ).toBe("asset_retry");
+    await due(j.id);
     await processOne(api, repository, dl);
     expect(api.create).toHaveBeenCalledTimes(1);
-    expect(db.select().from(jobs).where(eq(jobs.id, j.id)).get()?.status).toBe(
-      "ready",
-    );
-    expect(owned(p.id, p.owner).modelAsset).toBeTruthy();
+    expect(
+      (await db.select().from(jobs).where(eq(jobs.id, j.id)).limit(1))[0]
+        ?.status,
+    ).toBe("ready");
+    expect((await owned(p.id, p.owner)).modelAsset).toBeTruthy();
   });
   it("never automatically retries an uncertain paid submission", async () => {
     const p = await draft(),
-      j = requestGeneration(p, randomUUID()),
+      j = await requestGeneration(p, randomUUID()),
       api = provider();
     api.create.mockRejectedValue(new ProviderError("timeout"));
     await processOne(api);
-    expect(db.select().from(jobs).where(eq(jobs.id, j.id)).get()?.status).toBe(
-      "uncertain",
-    );
-    due(j.id);
+    expect(
+      (await db.select().from(jobs).where(eq(jobs.id, j.id)).limit(1))[0]
+        ?.status,
+    ).toBe("uncertain");
+    await due(j.id);
     await processOne(api);
     expect(api.create).toHaveBeenCalledTimes(1);
-    expect(() => requestGeneration(p, randomUUID())).toThrow(
+    await expect(requestGeneration(p, randomUUID())).rejects.toThrow(
       "already has an attempt",
     );
   });
   it("an interrupted submitting lease becomes uncertain without a new request", async () => {
     const p = await draft(),
-      j = requestGeneration(p, randomUUID()),
+      j = await requestGeneration(p, randomUUID()),
       api = provider();
-    db.update(jobs)
+    await db
+      .update(jobs)
       .set({ status: "submitting" })
-      .where(eq(jobs.id, j.id))
-      .run();
+      .where(eq(jobs.id, j.id));
     await processOne(api);
     expect(api.create).not.toHaveBeenCalled();
-    expect(db.select().from(jobs).where(eq(jobs.id, j.id)).get()?.status).toBe(
-      "uncertain",
-    );
+    expect(
+      (await db.select().from(jobs).where(eq(jobs.id, j.id)).limit(1))[0]
+        ?.status,
+    ).toBe("uncertain");
   });
   it("fences old leases", async () => {
     const p = await draft(),
-      j = requestGeneration(p, randomUUID()),
-      claimed = repository.claim()!;
-    due(j.id);
-    const newer = repository.claim()!;
-    expect(repository.patch(claimed, { status: "ready" })).toBe(false);
-    expect(repository.patch(newer, { status: "failed" })).toBe(true);
+      j = await requestGeneration(p, randomUUID()),
+      claimed = (await repository.claim())!;
+    await due(j.id);
+    const newer = (await repository.claim())!;
+    expect(await repository.patch(claimed, { status: "ready" })).toBe(false);
+    expect(await repository.patch(newer, { status: "failed" })).toBe(true);
   });
 });
 describe("ownership, sharing, and storage", () => {
   it("does not wrap an unapproved character", async () => {
     const p = await draft();
-    expect(() => publish(p)).toThrow("Approve your character");
-    expect(projectView(p).shares).toHaveLength(0);
+    await expect(publish({ ...p, approved: 1 })).rejects.toThrow(
+      "Approve your character",
+    );
+    expect((await projectView(p)).shares).toHaveLength(0);
   });
   it("wrapping new versions preserves old words and independently revocable links", async () => {
     const p = await draft();
-    db.update(projects).set({ approved: 1 }).where(eq(projects.id, p.id)).run();
-    const first = publish(owned(p.id, p.owner));
-    db.update(projects)
+    await db.update(projects).set({ approved: 1 }).where(eq(projects.id, p.id));
+    const first = await publish(await owned(p.id, p.owner));
+    await db
+      .update(projects)
       .set({
         config: JSON.stringify({
           ...defaults,
@@ -172,25 +241,25 @@ describe("ownership, sharing, and storage", () => {
           message: "A new letter",
         }),
       })
-      .where(eq(projects.id, p.id))
-      .run();
-    const second = publish(owned(p.id, p.owner));
+      .where(eq(projects.id, p.id));
+    const second = await publish(await owned(p.id, p.owner));
     expect(first.version).toBe(1);
     expect(second.version).toBe(2);
     expect(second.token).not.toBe(first.token);
-    expect(JSON.parse(shared(first.token).snapshot).config.message).toBe(
-      defaults.message,
-    );
-    expect(JSON.parse(shared(second.token).snapshot).config.message).toBe(
-      "A new letter",
-    );
-    db.update(gifts).set({ revoked: 1 }).where(eq(gifts.id, first.id)).run();
-    expect(() => shared(first.token)).toThrow("no longer");
-    expect(shared(second.token).id).toBe(second.id);
+    expect(
+      JSON.parse((await shared(first.token)).snapshot).config.message,
+    ).toBe(defaults.message);
+    expect(
+      JSON.parse((await shared(second.token)).snapshot).config.message,
+    ).toBe("A new letter");
+    await db.update(gifts).set({ revoked: 1 }).where(eq(gifts.id, first.id));
+    await expect(shared(first.token)).rejects.toThrow("no longer");
+    expect((await shared(second.token)).id).toBe(second.id);
   });
   it("isolates published snapshots and checks ownership/revocation", async () => {
     const p = await draft();
-    db.update(projects)
+    await db
+      .update(projects)
       .set({
         approved: 1,
         config: JSON.stringify({
@@ -198,10 +267,10 @@ describe("ownership, sharing, and storage", () => {
           dedication: "Our Saturday adventures",
         }),
       })
-      .where(eq(projects.id, p.id))
-      .run();
-    const g = publish(owned(p.id, p.owner));
-    db.update(projects)
+      .where(eq(projects.id, p.id));
+    const g = await publish(await owned(p.id, p.owner));
+    await db
+      .update(projects)
       .set({
         config: JSON.stringify({
           ...defaults,
@@ -209,48 +278,49 @@ describe("ownership, sharing, and storage", () => {
           dedication: "Another thought",
         }),
       })
-      .where(eq(projects.id, p.id))
-      .run();
-    expect(JSON.parse(shared(g.token).snapshot).config.message).toBe(
+      .where(eq(projects.id, p.id));
+    expect(JSON.parse((await shared(g.token)).snapshot).config.message).toBe(
       defaults.message,
     );
-    expect(JSON.parse(shared(g.token).snapshot).config.dedication).toBe(
+    expect(JSON.parse((await shared(g.token)).snapshot).config.dedication).toBe(
       "Our Saturday adventures",
     );
-    expect(() => owned(p.id, "intruder")).toThrow("not found");
-    db.update(gifts).set({ revoked: 1 }).where(eq(gifts.id, g.id)).run();
-    expect(() => shared(g.token)).toThrow("no longer");
+    await expect(owned(p.id, "intruder")).rejects.toThrow("not found");
+    await db.update(gifts).set({ revoked: 1 }).where(eq(gifts.id, g.id));
+    await expect(shared(g.token)).rejects.toThrow("no longer");
   });
   it("reads legacy drafts without inventing a personal detail or rewriting storage", async () => {
     const p = await draft();
     const { dedication: _removed, ...legacy } = defaults;
-    db.update(projects)
+    await db
+      .update(projects)
       .set({ config: JSON.stringify(legacy) })
-      .where(eq(projects.id, p.id))
-      .run();
-    expect(projectView(owned(p.id, p.owner)).config.dedication).toBe("");
-    expect(JSON.parse(owned(p.id, p.owner).config)).not.toHaveProperty(
+      .where(eq(projects.id, p.id));
+    expect(
+      (await projectView(await owned(p.id, p.owner))).config.dedication,
+    ).toBe("");
+    expect(JSON.parse((await owned(p.id, p.owner)).config)).not.toHaveProperty(
       "dedication",
     );
   });
   it("removes files and shared access without resetting quota history", async () => {
     const p = await draft(),
-      input = asset(p.inputAsset!);
-    requestGeneration(p, randomUUID());
+      input = await asset(p.inputAsset!);
+    await requestGeneration(p, randomUUID());
     const count = (
-      sqlite.prepare("SELECT COUNT(*) n FROM generation_usage").get() as {
-        n: number;
-      }
-    ).n;
+      await query<{ n: number }>(
+        sql`SELECT COUNT(*)::integer AS n FROM generation_usage`,
+      )
+    )[0].n;
     await deleteProject(p.id);
     await expect(storage.read(input.filename)).rejects.toThrow();
-    expect(() => owned(p.id, p.owner)).toThrow();
+    await expect(owned(p.id, p.owner)).rejects.toThrow();
     expect(
       (
-        sqlite.prepare("SELECT COUNT(*) n FROM generation_usage").get() as {
-          n: number;
-        }
-      ).n,
+        await query<{ n: number }>(
+          sql`SELECT COUNT(*)::integer AS n FROM generation_usage`,
+        )
+      )[0].n,
     ).toBe(count);
   });
   it("rejects wrong content, too-small images, oversized upload, and non-GLB", async () => {
