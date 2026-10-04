@@ -6,13 +6,15 @@ This working prototype has a public Vercel + Neon example deployment, local appl
 
 Five inline findings on PR #1 were missed before the initial merge. The follow-up creates missing heartbeat directories, requires an external PostgreSQL URL for Compose, removes the obsolete Render Blueprint, reads terminal job and project state under the worker transaction lock, and bounds public drawing storage with a shared 25 MiB/hour byte limit plus reclamation of unreferenced replaced drawings. Published keepsakes and generation inputs are retained.
 
+[PR #2](https://github.com/Xuefeng-Zhu/DoodleQuest/pull/2) was merged into `main` at `46e0d27` after the automated review of application commit `94a570a` completed without new findings. The local base branch was fast-forwarded, preserving the pre-existing `next-env.d.ts` edit. This merge has not been redeployed to Vercel.
+
 The second review also identified repeated per-draft locking and retention of images referenced only by revoked gifts. Draft lists now use one transaction with a fixed five-query snapshot for populated drafts. Revocation reclaims unreferenced images in the same transaction, including drawings replaced before revocation, while retaining current drafts, active gifts and generation/motion history.
 
 Validation: all 163 unit/integration tests across 19 files passed, including fresh-directory startup, stale generation/motion callers, batched owner isolation, concurrent anonymous upload limits, drawing replacement, gift/job retention, revocation before/after replacement, and storage rollback. TypeScript checking and diff checks passed. Compose configuration rejected a blank database URL and accepted a placeholder external URL; no container startup is claimed. Hosted deployment of this follow-up has not yet been verified.
 
 ## Main merge and Tripothon remote draft — 2026-10-03
 
-[PR #1](https://github.com/Xuefeng-Zhu/DoodleQuest/pull/1) was merged into `main` at `56c6344`, and the local base branch was fast-forwarded. The pre-existing `next-env.d.ts` edit was preserved byte-for-byte. A remote Tripothon draft was opened with Game and Tripo selected; reopening My Submissions confirmed one saved draft with both tracks. The Team step requires the participant's full name, email and role before later form sections unlock. No final event entry or declarations were sent. The private edit link and any future team contact details are excluded from this repository.
+[PR #1](https://github.com/Xuefeng-Zhu/DoodleQuest/pull/1) was merged into `main` at `56c6344`, and the local base branch was fast-forwarded. The pre-existing `next-env.d.ts` edit was preserved byte-for-byte. A remote Tripothon draft was opened with Game and Tripo selected. The user subsequently completed Team; Project and Media & Demo are saved with the title, description, cover, four gallery images, walkthrough, live demo and repository links. Reopening confirmed DoodleQuest remains a draft and retains its Tripo contribution and asset disclosure. Prior-work confirmation, all six rights/rules/promotional-license declarations and final review remain pending. No final event entry or declarations were sent. Private edit links and team contact details are excluded from this repository.
 
 ## Vercel and Neon hosted verification — 2026-10-03
 
